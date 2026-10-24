@@ -17,6 +17,28 @@ function setup() {
     vm.runInContext(fs.readFileSync(`${__dirname}/script.js`, 'utf8'), context);
     return {run: code => vm.runInContext(code, context), elements};
 }
+test('途中の勝敗変更と取り消しで順位・決勝進出表示を更新する', () => {
+    const {run, elements} = setup();
+    run(`
+        const status = document.getElementById('red-goddesses-status');
+        status.classList = {add() {}, remove() {}};
+        const [a, b] = getPlayersInBlock('red-goddesses');
+        const ab = 'red-goddesses-' + a + '-' + b;
+        const ba = 'red-goddesses-' + b + '-' + a;
+        matchResults[ab] = 'win'; matchResults[ba] = 'lose';
+        updatePoints('red-goddesses');
+    `);
+    assert.equal(run(`isBlockComplete('red-goddesses')`), false);
+    assert.equal(run(`getRankedTeam('red', 1) === a`), true);
+    assert.match(elements.get('red-goddesses-status').textContent, /暫定/);
+    run(`matchResults[ab] = 'lose'; matchResults[ba] = 'win'; updatePoints('red-goddesses');`);
+    assert.equal(run(`getRankedTeam('red', 1) === b`), true);
+    run(`delete matchResults[ab]; delete matchResults[ba]; updatePoints('red-goddesses');`);
+    assert.equal(elements.get('bracket-red-1-rank').textContent, '1位');
+    assert.equal(elements.get('bracket-red-2-rank').textContent, '2位');
+    assert.equal(elements.get('red-goddesses-status').textContent, '');
+});
+
 test('各9チーム、36対戦、重複なし、リーグ日程は未定', () => {
     const {run} = setup();
     assert.equal(run(`Object.values(tournamentData).every(b => b.teams.length === 9 && new Set(b.teams).size === 9 && b.matches.length === 36 && new Set(b.matches.map(m => m.slice(0,2).join(':'))).size === 36 && b.matches.every(m => m[2] === '未定' && m[3] === '未定'))`), true);

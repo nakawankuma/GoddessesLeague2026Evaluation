@@ -400,6 +400,7 @@ function getResultIcon(result) {
 }
 
 function updatePoints(block) {
+    const rankings = new Map(determineBlockRankings(block).map(team => [team.name, team.rank]));
     const pointCells = document.querySelectorAll(`#${block} .point-column`);
     pointCells.forEach(pointCell => {
         const player = pointCell.dataset.player ? normalizePlayerName(pointCell.dataset.player) : null;
@@ -427,10 +428,10 @@ function updatePoints(block) {
         });
 
         // 点数表示を更新
-        const confirmedPointsSpan = pointCell.querySelector('.confirmed-points');
+        const rankSpan = pointCell.querySelector('.block-rank');
         const predictedPointsSpan = pointCell.querySelector('.predicted-points');
 
-        if (confirmedPointsSpan) confirmedPointsSpan.textContent = confirmedPoints;
+        if (rankSpan) rankSpan.textContent = rankings.get(player);
         if (predictedPointsSpan) predictedPointsSpan.textContent = predictedPoints;
     });
     checkCompletionAndRank(block);
@@ -540,7 +541,7 @@ function updateTournamentBracket(block, rankings) {
 }
 
 /**
- * ブロック完了時に順位を計算してトーナメントに反映
+ * 入力のたびに暫定順位を計算してトーナメントに反映
  * @param {string} block - ブロックID（red-goddesses / blue-goddesses）
  */
 function checkCompletionAndRank(block) {
@@ -552,20 +553,26 @@ function checkCompletionAndRank(block) {
         return;
     }
 
-    // 全チームで全試合が完了しているか確認
-    if (isBlockComplete(block)) {
-        console.log(`${block}の全試合が完了しました。順位を計算します。`);
-        const rankings = determineBlockRankings(block);
+    const hasResults = Object.keys(matchResults).some(key => key.startsWith(`${block}-`) && matchResults[key]);
+    const complete = isBlockComplete(block);
+    if (hasResults) {
+        updateTournamentBracket(block, determineBlockRankings(block));
+    } else {
+        const blockShort = block.replace('-goddesses', '');
+        [1, 2].forEach(rank => {
+            const element = document.getElementById(`bracket-${blockShort}-${rank}-rank`);
+            if (element) element.textContent = `${rank}位`;
+        });
+    }
 
-        // トーナメントブラケットに反映（上位2チーム）
-        updateTournamentBracket(block, rankings);
-
-        statusEl.textContent = 'ブロック順位確定';
+    if (complete) {
+        statusEl.textContent = 'ブロック順位（確定結果＋予想・全試合入力済み）';
         statusEl.classList.add('confirmed');
     } else {
-        statusEl.textContent = '';
+        statusEl.textContent = hasResults ? '暫定ブロック順位（確定結果＋予想）' : '';
         statusEl.classList.remove('confirmed');
     }
+    updateTournamentWinners();
 }
 
 function showPlayerSchedule(playerName) {
@@ -934,6 +941,14 @@ function addChampionStyles() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    const headerFontSize = document.getElementById('header-font-size');
+    const headerFontSizeValue = document.getElementById('header-font-size-value');
+    headerFontSize.addEventListener('input', () => {
+        const size = Number(headerFontSize.value).toFixed(1) + 'rem';
+        document.documentElement.style.setProperty('--table-header-font-size', size);
+        headerFontSizeValue.value = size;
+    });
+
     document.querySelector('[data-view="all"]').addEventListener('click', showAllContent);
     document.querySelector('[data-view="tabs"]').addEventListener('click', showTabView);
     document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showContent(tab.dataset.block)));
@@ -1165,7 +1180,7 @@ function generateBlockTable(blockId, blockData) {
 
     html += `
                     <th class="${colorClass}-header rest-column">休み</th>
-                    <th class="${colorClass}-header point-column">勝ち点（予想）</th>
+                    <th class="${colorClass}-header point-column">順位（勝ち点）</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -1207,7 +1222,7 @@ function generateBlockTable(blockId, blockData) {
         html += `
             <td class="rest-column match-info"></td>
             <td class="point-column" data-player="${team1}">
-                <span class="confirmed-points">0</span>(<span class="predicted-points">0</span>)
+                <span class="block-rank">${teams.indexOf(team1) + 1}</span>位(<span class="predicted-points">0</span>)
             </td>
         </tr>`;
     });

@@ -1,4 +1,12 @@
 
+        :root {
+            --table-header-font-size: 2rem;
+        }
+
+        th {
+            font-size: var(--table-header-font-size);
+        }
+
         body {
             font-family: 'Arial', 'Helvetica', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
@@ -8,7 +16,8 @@
         }
 
         .container {
-            max-width: 1400px;
+            width: 100%;
+            box-sizing: border-box;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -44,6 +53,22 @@
             gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .font-size-control output {
+            min-width: 4.5em;
+        }
+
+        .content {
+            overflow-x: auto;
         }
 
         .tabs {
@@ -153,7 +178,7 @@
             padding: 12px 6px;
             text-align: center;
             font-weight: bold;
-            font-size: 12px;
+            font-size: var(--table-header-font-size);
             border: 1px solid #999;
             color: white;
         }
@@ -285,7 +310,7 @@
             color: #856404;
         }
 
-        .confirmed-points {
+        .block-rank {
             color: #666;
         }
 
