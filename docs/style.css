@@ -262,7 +262,7 @@
         .player-name {
             color: white;
             font-weight: bold;
-            font-size: 12px;
+            font-size: var(--table-header-font-size);
             text-align: center;
         }
 
