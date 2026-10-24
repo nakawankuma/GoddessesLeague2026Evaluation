@@ -1,0 +1,27 @@
+{
+  "name": "goddes-tag-league-2026-evaluation-tool",
+  "version": "1.0.0",
+  "description": "Goddes Tag League 2026 Evaluation Tool",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "http-server . -p 8000 -c-1",
+    "lint": "html-validate index.html",
+    "lint:fix": "html-validate index.html --fix",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "html-validate": "^10.2.1",
+    "http-server": "^14.1.1",
+    "husky": "^9.1.7"
+  },
+  "keywords": [
+    "tournament",
+    "bracket",
+    "wrestling",
+    "goddes-tag-league"
+  ],
+  "author": "",
+  "license": "MIT"
+}

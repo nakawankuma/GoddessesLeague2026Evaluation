@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goddes Tag League 2026 - 全対戦表</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="main-title">Goddes Tag League 2026</div>
+            <div class="subtitle">全対戦表</div>
+            <button id="help-btn" class="help-button" title="使い方"><i class="fa-solid fa-question-circle"></i></button>
+        </div>
+        
+        <div class="controls">
+            <div class="view-toggle">
+                <button class="toggle-button active" data-view="all" onclick="showAllContent()">全表示</button>
+                <button class="toggle-button" data-view="tabs" onclick="showTabView()">タブ表示</button>
+            </div>
+            <div class="io-controls">
+                <button id="download-btn" class="io-button">予想結果をダウンロード</button>
+                <button id="upload-btn" class="io-button">予想結果をアップロード</button>
+                <input type="file" id="upload-input" accept=".json" style="display: none;">
+            </div>
+        </div>
+
+        <div class="tabs" id="tabs" style="display: none;">
+            <button class="tab red" data-block="red-goddesses" onclick="showContent('red-goddesses')">RED GODDESSES</button>
+            <button class="tab blue" data-block="blue-goddesses" onclick="showContent('blue-goddesses')">BLUE GODDESSES</button>
+        </div>
+        
+        
+        
+        <div id="red-goddesses" class="content">
+        </div>
+        
+        <div id="blue-goddesses" class="content">
+        </div>
+        
+        
+        <div style="margin-top: 20px; text-align: center; color: #666; font-size: 12px;">
+            ※ 対戦日程と会場情報<br>
+            リーグ戦の日付・会場は未確認のため「未定」です。決勝トーナメントは11/29 浜松です。<br><br>
+            これはあくまでファンサイトです、正式な情報はスターダムを参照してください。<br>
+            <a href="https://wwr-stardom.com/" target="_blank" style="color: #666; text-decoration: underline;">https://wwr-stardom.com/</a>
+        </div>
+        
+        
+        <div class="tournament-section">
+            <div class="tournament-header">
+                <div class="tournament-title">決勝トーナメント</div>
+                <div class="tournament-subtitle">Goddes Tag League 2026</div>
+            </div>
+
+            
+            <div style="width: 100%; margin: 20px auto; background: rgba(255, 255, 255, 0.95); border-radius: 10px; padding: 20px; overflow-x: auto;">
+                <svg id="tournament-svg" viewBox="0 0 1200 400" style="width: 100%; min-width: 900px; height: auto;" xmlns="http://www.w3.org/2000/svg">
+<text x="600" y="30" text-anchor="middle" font-size="22">2026/11/29 浜松 — 準決勝・優勝決定戦</text>
+<rect x="20" y="90" width="320" height="60" fill="#c62828" rx="6"/><text x="180" y="110" text-anchor="middle" fill="white">RED GODDESSES</text><text id="bracket-red-1-rank" x="180" y="135" text-anchor="middle" fill="white" font-size="12">1位</text>
+<rect x="20" y="230" width="320" height="60" fill="#c62828" rx="6"/><text x="180" y="250" text-anchor="middle" fill="white">RED GODDESSES</text><text id="bracket-red-2-rank" x="180" y="275" text-anchor="middle" fill="white" font-size="12">2位</text>
+<path d="M 180 150 V 190 H 430 V 230 M 180 230 V 190" fill="none" stroke="#c62828" stroke-width="3"/>
+<rect id="red-sf-box" x="360" y="170" width="140" height="60" rx="6" fill="#c62828" class="tournament-match-box" data-match="red-sf"/><text x="430" y="192" text-anchor="middle" fill="white" pointer-events="none">準決勝①</text><text id="red-sf-result" x="430" y="217" text-anchor="middle" fill="white" pointer-events="none"></text>
+<rect x="860" y="90" width="320" height="60" fill="#1565c0" rx="6"/><text x="1020" y="110" text-anchor="middle" fill="white">BLUE GODDESSES</text><text id="bracket-blue-1-rank" x="1020" y="135" text-anchor="middle" fill="white" font-size="12">1位</text>
+<rect x="860" y="230" width="320" height="60" fill="#1565c0" rx="6"/><text x="1020" y="250" text-anchor="middle" fill="white">BLUE GODDESSES</text><text id="bracket-blue-2-rank" x="1020" y="275" text-anchor="middle" fill="white" font-size="12">2位</text>
+<path d="M 1020 150 V 190 H 770 V 230 M 1020 230 V 190" fill="none" stroke="#1565c0" stroke-width="3"/>
+<rect id="blue-sf-box" x="700" y="170" width="140" height="60" rx="6" fill="#1565c0" class="tournament-match-box" data-match="blue-sf"/><text x="770" y="192" text-anchor="middle" fill="white" pointer-events="none">準決勝②</text><text id="blue-sf-result" x="770" y="217" text-anchor="middle" fill="white" pointer-events="none"></text>
+<path d="M 430 230 V 320 H 770 V 230" fill="none" stroke="#b8860b" stroke-width="4"/>
+<rect id="final-box" x="510" y="290" width="180" height="70" rx="8" fill="#ffd700" class="tournament-match-box" data-match="final"/><text x="600" y="315" text-anchor="middle" pointer-events="none">優勝決定戦</text><text id="final-result" x="600" y="345" text-anchor="middle" pointer-events="none"></text>
+</svg>
+            </div>
+            
+            <!-- 優勝者表示エリア -->
+            <div id="champion-display" style="display: none; text-align: center; margin-top: 30px; padding: 20px; background: linear-gradient(45deg, #ffd700, #ffb300); border-radius: 15px; box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);">
+                <div id="champion-text" style="font-size: 3em; font-weight: bold; color: #1a1a2e; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: championGlow 2s ease-in-out infinite alternate;"></div>
+            </div>
+        </div>
+        
+        <!-- 優勝者アニメーション用CSS -->
+        <style>
+            @keyframes championGlow {
+                from { 
+                    transform: scale(1); 
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                to { 
+                    transform: scale(1.05); 
+                    text-shadow: 3px 3px 8px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.6);
+                }
+            }
+            
+            /* ヘルプボタンのスタイル */
+            .header {
+                position: relative;
+            }
+            
+            .help-button {
+                position: absolute;
+                top: 10px;
+                right: 20px;
+                background: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+                transition: all 0.3s ease;
+                z-index: 100;
+            }
+            
+            .help-button:hover {
+                background: #1976D2;
+                transform: scale(1.1);
+                box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
+            }
+            
+            .help-button:active {
+                transform: scale(0.95);
+            }
+            
+            /* ヘルプダイアログのスタイル */
+            .help-modal-content {
+                max-width: 700px;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            .help-content {
+                text-align: left;
+                line-height: 1.6;
+            }
+            
+            .help-content h4 {
+                color: #2196F3;
+                border-bottom: 2px solid #e3f2fd;
+                padding-bottom: 5px;
+                margin-top: 25px;
+                margin-bottom: 15px;
+            }
+            
+            .help-content ul {
+                margin: 0 0 20px 0;
+                padding-left: 20px;
+            }
+            
+            .help-content li {
+                margin-bottom: 10px;
+            }
+            
+            .help-content strong {
+                color: #333;
+            }
+            
+            @media (max-width: 768px) {
+                #champion-text {
+                    font-size: 2em !important;
+                }
+                
+                .help-button {
+                    top: 5px;
+                    right: 10px;
+                    width: 35px;
+                    height: 35px;
+                    font-size: 16px;
+                }
+                
+                .help-modal-content {
+                    max-width: 95%;
+                    margin: 10px;
+                }
+            }
+        </style>
+        
+        <div class="venue-list-section" style="margin-top: 40px; padding: 20px; background: rgba(255, 255, 255, 0.9); border-radius: 10px;">
+            <h3 style="text-align: center; font-size: 1.8em; color: #333; margin-bottom: 20px;">日付・会場対応表</h3>
+            <table class="schedule-table" style="margin: 0 auto; width: auto; min-width: 400px;">
+                <thead>
+                    <tr>
+                        <th class="red-header">日付</th>
+                        <th class="blue-header">会場</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 動的生成 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 確定データダウンロードボタン -->
+        <div style="text-align: center; margin-top: 30px; padding: 20px;">
+            <button id="download-confirmed-btn" class="io-button" style="background: #4CAF50; border-color: #45a049; font-size: 1.1em; padding: 12px 24px;">確定データをダウンロード</button>
+        </div>
+    </div>
+
+    
+    <div id="schedule-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 id="modal-player-name"></h3>
+            <div id="modal-schedule-body"></div>
+        </div>
+    </div>
+
+    <div id="venue-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 id="modal-venue-name"></h3>
+            <div id="modal-venue-body"></div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content help-modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 style="text-align: center; color: #333; margin-bottom: 20px;"><i class="fa-solid fa-question-circle"></i> 使い方ガイド</h3>
+            <div class="help-content">
+                <h4><i class="fa-solid fa-table"></i> 基本操作</h4>
+                <ul>
+                    <li><strong>試合結果の入力：</strong>各マッチのセルをクリックして勝敗を設定できます（○勝利、×敗北、△引き分け）</li>
+                    <li><strong>結果の表示：</strong>各セルは左右に分かれており、左側に確定結果、右側に予想結果が表示されます</li>
+                    <li><strong>確定済み試合：</strong>確定データがある試合はグレー表示となり、予想の変更はできません</li>
+                    <li><strong>チームスケジュール：</strong>チーム名をクリックすると個別の対戦スケジュールが表示されます</li>
+                    <li><strong>会場別試合：</strong>会場名をクリックするとその日の全試合が表示されます</li>
+                </ul>
+
+                <h4><i class="fa-solid fa-trophy"></i> トーナメント機能</h4>
+                <ul>
+                    <li><strong>ブロック順位確定：</strong>全試合完了時に自動的に順位が確定し、決勝トーナメントに反映されます</li>
+                    <li><strong>勝ち点の表示：</strong>各チームの勝ち点は「確定点数(予想点数)」の形式で表示されます</li>
+                    <li><strong>トーナメント試合：</strong>決勝トーナメントのボックスをクリックして勝者を設定できます（○×のみ）</li>
+                    <li><strong>優勝者表示：</strong>決勝の勝者が決まると自動的に優勝者が大きく表示されます</li>
+                </ul>
+
+                <h4><i class="fa-solid fa-download"></i> データの保存・読み込み</h4>
+                <ul>
+                    <li><strong>予想結果をダウンロード：</strong>現在の予想結果のみをファイルとして保存できます</li>
+                    <li><strong>予想結果をアップロード：</strong>保存した予想結果を読み込んで予想を再開できます（確定データとは別に管理されます）</li>
+                    <li><strong>確定データをダウンロード：</strong>現在の全結果を確定データとして保存します（公式結果用）</li>
+                    <li><strong>データの表示：</strong>予想データと確定データは自動的に区別され、確定データは左側、予想データは右側に表示されます</li>
+                </ul>
+
+                <h4><i class="fa-solid fa-eye"></i> 表示切り替え</h4>
+                <ul>
+                    <li><strong>全表示：</strong>すべてのブロックを同時に表示します</li>
+                    <li><strong>タブ表示：</strong>ブロックごとにタブで切り替えて表示します</li>
+                </ul>
+
+                <h4><i class="fa-solid fa-info-circle"></i> 補足情報</h4>
+                <ul>
+                    <li>このサイトはファンサイトです。正式な情報は<a href="https://wwr-stardom.com/" target="_blank" style="color: #2196F3;">スターダム公式サイト</a>をご確認ください</li>
+                    <li>予想データと確定データは完全に分離されており、ブラウザのローカルストレージには保存されません。必要に応じてダウンロード機能をご利用ください</li>
+                    <li>確定データがある試合は予想の変更ができません（グレー表示）</li>
+                    <li>確定データと予想データが両方ある場合、左側に確定結果、右側に予想結果が並んで表示され、予想の的中率を確認できます</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
