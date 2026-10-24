@@ -75,8 +75,42 @@ function normalizePlayerName(name) {
         '更南': '吏南'
         // 必要に応じて他の選手名のマッピングを追加
     };
-    
+
     return nameMapping[name] || name;
+}
+
+const MAX_RESULTS_BYTES = 128 * 1024;
+function validateResults(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('結果はオブジェクトが必要です');
+    const raw = Object.hasOwn(data, 'confirmed') ? data.confirmed : data;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('結果の形式が不正です');
+    const allowed = new Set(finalsSchedule.map(slot => `tournament-${slot.id}`));
+    blocks.forEach(block => tournamentData[block].matches.forEach(([i, j]) => {
+        const teams = tournamentData[block].teams;
+        allowed.add(`${block}-${teams[i]}-${teams[j]}`);
+        allowed.add(`${block}-${teams[j]}-${teams[i]}`);
+    }));
+    const result = Object.create(null);
+    for (const [key, value] of Object.entries(raw)) {
+        const normalized = normalizeMatchKey(key);
+        if (!allowed.has(normalized) || !['', 'win', 'lose', 'draw'].includes(value) ||
+            (normalized.startsWith('tournament-') && value === 'draw')) throw new Error('未対応の試合または勝敗です');
+        if (value) result[normalized] = value;
+    }
+    return result;
+}
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
+}
+let modalTrigger;
+function openModal(modal) {
+    modalTrigger = document.activeElement;
+    modal.style.display = 'flex';
+    modal.querySelector?.('.modal-close')?.focus();
+}
+function closeModal(modal) {
+    modal.style.display = 'none';
+    modalTrigger?.focus?.();
 }
 
 // result.jsonの読み込み
@@ -84,26 +118,28 @@ async function loadConfirmedResults() {
     try {
         const response = await fetch('result.json');
         if (response.ok) {
-            const data = await response.json();
+            const text = await response.text();
+            if (new TextEncoder().encode(text).length > MAX_RESULTS_BYTES) throw new Error('結果ファイルが大きすぎます');
+            const data = validateResults(JSON.parse(text));
             // データが直接のマッチ結果オブジェクトか、confirmed形式かを判定
-            const rawConfirmedResults = data.confirmed || data;
-            
+            const rawConfirmedResults = data;
+
             // 選手名を正規化してキーを変換
             confirmedResults = {};
             Object.keys(rawConfirmedResults).forEach(key => {
                 const normalizedKey = normalizeMatchKey(key);
-                
+
                 // 既存のキーと重複チェック
                 if (confirmedResults[normalizedKey] && confirmedResults[normalizedKey] !== rawConfirmedResults[key]) {
                     console.warn(`キーの重複検出: ${normalizedKey}, 既存値: ${confirmedResults[normalizedKey]}, 新値: ${rawConfirmedResults[key]}`);
                 }
-                
+
                 confirmedResults[normalizedKey] = rawConfirmedResults[key];
                 if (key !== normalizedKey) {
                     console.log(`キー正規化: ${key} -> ${normalizedKey}`);
                 }
             });
-            
+
             console.log('=== データ読み込み統計 ===');
             console.log('元のデータ件数:', Object.keys(rawConfirmedResults).length + '件');
             console.log('正規化後データ件数:', Object.keys(confirmedResults).length + '件');
@@ -125,11 +161,11 @@ function normalizeMatchKey(key) {
     if (key.startsWith('tournament-')) {
         return key;
     }
-    
+
     // ブロック名を取得（red-goddesses, blue-goddesses）
     let remainingKey = key;
     let block = '';
-    
+
     for (const blockName of blocks) {
         if (remainingKey.startsWith(blockName + '-')) {
             block = blockName;
@@ -137,22 +173,22 @@ function normalizeMatchKey(key) {
             break;
         }
     }
-    
+
     if (!block) {
         console.warn('不明なブロック名:', key);
         return key;
     }
-    
+
     // 残りの部分から選手名を抽出（最後の-で分割）
     const lastDashIndex = remainingKey.lastIndexOf('-');
     if (lastDashIndex === -1) {
         console.warn('選手名の分割に失敗:', key);
         return key;
     }
-    
+
     const player1 = normalizePlayerName(remainingKey.substring(0, lastDashIndex));
     const player2 = normalizePlayerName(remainingKey.substring(lastDashIndex + 1));
-    
+
     return `${block}-${player1}-${player2}`;
 }
 
@@ -367,9 +403,9 @@ function updatePoints(block) {
     const pointCells = document.querySelectorAll(`#${block} .point-column`);
     pointCells.forEach(pointCell => {
         const player = pointCell.dataset.player ? normalizePlayerName(pointCell.dataset.player) : null;
-        
+
         if (!player) return; // data-playerがない場合はスキップ
-        
+
         // 確定ポイントの計算
         let confirmedPoints = 0;
         Object.keys(confirmedResults).forEach(key => {
@@ -379,7 +415,7 @@ function updatePoints(block) {
                 if (result === 'draw') confirmedPoints += 1;
             }
         });
-        
+
         // 予想ポイントの計算（確定ポイント + 予想データのポイント）
         let predictedPoints = confirmedPoints;
         Object.keys(predictedResults).forEach(key => {
@@ -389,11 +425,11 @@ function updatePoints(block) {
                 if (result === 'draw') predictedPoints += 1;
             }
         });
-        
+
         // 点数表示を更新
         const confirmedPointsSpan = pointCell.querySelector('.confirmed-points');
         const predictedPointsSpan = pointCell.querySelector('.predicted-points');
-        
+
         if (confirmedPointsSpan) confirmedPointsSpan.textContent = confirmedPoints;
         if (predictedPointsSpan) predictedPointsSpan.textContent = predictedPoints;
     });
@@ -559,16 +595,16 @@ function showPlayerSchedule(playerName) {
             const matchKey = `${match.block}-${normalizedPlayerName}-${match.opponent}`;
             const confirmedResult = confirmedResults[matchKey];
             const predictedResult = predictedResults[matchKey];
-            
+
             const confirmedIcon = getResultIcon(confirmedResult);
             const predictedIcon = getResultIcon(predictedResult);
-            
+
             scheduleHtml += `<tr>
                 <td>${match.dateText}</td>
                 <td>${match.opponent}</td>
                 <td>${match.venue}</td>
-                <td class="result-cell ${confirmedResult || ''}">${confirmedIcon}</td>
-                <td class="result-cell ${predictedResult || ''}">${predictedIcon}</td>
+                <td class="result-cell ${escapeHtml(confirmedResult || '')}">${confirmedIcon}</td>
+                <td class="result-cell ${escapeHtml(predictedResult || '')}">${predictedIcon}</td>
             </tr>`;
         });
     } else {
@@ -576,7 +612,7 @@ function showPlayerSchedule(playerName) {
     }
     scheduleHtml += '</tbody></table>';
     modalScheduleBody.innerHTML = scheduleHtml;
-    modal.style.display = 'flex';
+    openModal(modal);
 }
 
 // トーナメント勝者の実際の選手名を取得
@@ -585,16 +621,16 @@ function getActualTournamentWinner(winnerId) {
     const matchId = winnerId.replace('-winner', '');
     const matchKey = `tournament-${matchId}`;
     const result = matchResults[matchKey];
-    
+
     if (!result) return null;
-    
+
     // 試合結果から勝者を特定
     if (result === 'win') {
         return getTournamentPlayer1(matchId);
     } else if (result === 'lose') {
         return getTournamentPlayer2(matchId);
     }
-    
+
     return null;
 }
 
@@ -652,7 +688,7 @@ function showVenueSchedule(venueName, date) {
         uniqueMatches.forEach(match => {
             let confirmedResult = null;
             let predictedResult = null;
-            
+
             if (match.type === 'リーグ戦') {
                 // リーグ戦の場合、matchKeyを使って確定・予想結果を取得
                 const matchKey = `${match.block}-${normalizePlayerName(match.player1)}-${normalizePlayerName(match.player2)}`;
@@ -664,18 +700,18 @@ function showVenueSchedule(venueName, date) {
                 confirmedResult = confirmedResults[tournamentKey];
                 predictedResult = predictedResults[tournamentKey];
             }
-            
+
             const confirmedIcon = getResultIcon(confirmedResult);
             const predictedIcon = getResultIcon(predictedResult);
-            
+
             scheduleHtml += `<tr>
                 <td>${match.type}</td>
                 <td>${match.block}</td>
                 <td>${match.player1}</td>
                 <td>vs</td>
                 <td>${match.player2}</td>
-                <td class="result-cell ${confirmedResult || ''}">${confirmedIcon}</td>
-                <td class="result-cell ${predictedResult || ''}">${predictedIcon}</td>
+                <td class="result-cell ${escapeHtml(confirmedResult || '')}">${confirmedIcon}</td>
+                <td class="result-cell ${escapeHtml(predictedResult || '')}">${predictedIcon}</td>
             </tr>`;
         });
     } else {
@@ -683,7 +719,7 @@ function showVenueSchedule(venueName, date) {
     }
     scheduleHtml += '</tbody></table>';
     modalVenueBody.innerHTML = scheduleHtml;
-    modal.style.display = 'flex';
+    openModal(modal);
 }
 
 function refreshAllTables() {
@@ -702,7 +738,7 @@ function refreshAllTables() {
 
         updatePoints(blockId);
     });
-    
+
     // トーナメント結果も復元
     refreshTournamentResults();
 }
@@ -714,7 +750,7 @@ function refreshTournamentResults() {
     tournamentMatches.forEach(matchId => {
         const matchKey = `tournament-${matchId}`;
         const result = matchResults[matchKey];
-        
+
         if (result) {
             updateTournamentResultDisplay(matchId, result);
         } else {
@@ -732,25 +768,25 @@ function initializeTournamentBracket() {
 function toggleTournamentMatchResult(matchId) {
     const matchKey = `tournament-${matchId}`;
     const resultElement = document.getElementById(`${matchId}-result`);
-    
+
     if (confirmedResults[matchKey]) return;
     let currentResult = matchResults[matchKey] || 'none';
-    
+
     switch (currentResult) {
-        case 'none': 
+        case 'none':
             matchResults[matchKey] = 'win';
             updateTournamentResultDisplay(matchId, 'win');
             break;
-        case 'win': 
+        case 'win':
             matchResults[matchKey] = 'lose';
             updateTournamentResultDisplay(matchId, 'lose');
             break;
-        default: 
+        default:
             delete matchResults[matchKey];
             updateTournamentResultDisplay(matchId, null);
             break;
     }
-    
+
     if (matchResults[matchKey]) predictedResults[matchKey] = matchResults[matchKey];
     else delete predictedResults[matchKey];
     // トーナメント勝者を更新
@@ -769,7 +805,7 @@ function updateTournamentResultDisplay(matchId, result) {
 
     // 各試合の勝者名を取得して表示
     let winnerName = '';
-    
+
     if (result === 'win') {
         winnerName = getTournamentPlayer1(matchId);
     } else if (result === 'lose') {
@@ -810,13 +846,13 @@ function getTournamentPlayer2(matchId) {
 function getMatchWinner(matchId) {
     const matchKey = `tournament-${matchId}`;
     const result = matchResults[matchKey];
-    
+
     if (result === 'win') {
         return getTournamentPlayer1(matchId);
     } else if (result === 'lose') {
         return getTournamentPlayer2(matchId);
     }
-    
+
     return null;
 }
 
@@ -835,7 +871,7 @@ function updateChampionDisplay() {
     const finalResult = matchResults['tournament-final'];
     const championDisplay = document.getElementById('champion-display');
     const championText = document.getElementById('champion-text');
-    
+
     if (finalResult) {
         // 決勝の勝者を取得
         let champion = null;
@@ -844,12 +880,12 @@ function updateChampionDisplay() {
         } else if (finalResult === 'lose') {
             champion = getTournamentPlayer2('final');
         }
-        
+
         if (champion && champion !== '未定') {
             // 優勝者を表示
             championText.textContent = `${champion}優勝！`;
             championDisplay.style.display = 'block';
-            
+
             // 勝利の効果音やアニメーションを追加（将来的な拡張用）
             triggerChampionCelebration();
         } else {
@@ -865,10 +901,10 @@ function updateChampionDisplay() {
 // 優勝者決定時の演出
 function triggerChampionCelebration() {
     const championDisplay = document.getElementById('champion-display');
-    
+
     // 一時的にさらに大きなアニメーションを追加
     championDisplay.style.animation = 'championReveal 1s ease-out';
-    
+
     // 数秒後に通常のアニメーションに戻す
     setTimeout(() => {
         championDisplay.style.animation = '';
@@ -880,16 +916,16 @@ function addChampionStyles() {
     const style = document.createElement('style');
     style.textContent = `
         @keyframes championReveal {
-            0% { 
-                transform: scale(0.5) rotate(-10deg); 
+            0% {
+                transform: scale(0.5) rotate(-10deg);
                 opacity: 0;
             }
-            50% { 
-                transform: scale(1.2) rotate(5deg); 
+            50% {
+                transform: scale(1.2) rotate(5deg);
                 opacity: 1;
             }
-            100% { 
-                transform: scale(1) rotate(0deg); 
+            100% {
+                transform: scale(1) rotate(0deg);
                 opacity: 1;
             }
         }
@@ -898,15 +934,18 @@ function addChampionStyles() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    document.querySelector('[data-view="all"]').addEventListener('click', showAllContent);
+    document.querySelector('[data-view="tabs"]').addEventListener('click', showTabView);
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showContent(tab.dataset.block)));
     // 確定データを読み込み
     await loadConfirmedResults();
-    
+
     // 優勝者表示用のCSSを追加
     addChampionStyles();
-    
+
     // トーナメントブラケットを初期化（jQueryが読み込まれた後）
     setTimeout(initializeTournamentBracket, 500);
-    
+
     // トーナメントボックスにクリックイベントを追加
     setTimeout(() => {
         document.querySelectorAll('.tournament-match-box').forEach(box => {
@@ -921,26 +960,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
         console.log('Tournament boxes initialized:', document.querySelectorAll('.tournament-match-box').length);
     }, 1000);
-    
+
 
     const scheduleModal = document.getElementById('schedule-modal');
     const scheduleModalClose = scheduleModal.querySelector('.modal-close');
-    scheduleModalClose.addEventListener('click', () => { scheduleModal.style.display = 'none'; });
-    scheduleModal.addEventListener('click', (e) => { if (e.target === scheduleModal) scheduleModal.style.display = 'none'; });
+    scheduleModalClose.addEventListener('click', () => { closeModal(scheduleModal); });
+    scheduleModal.addEventListener('click', (e) => { if (e.target === scheduleModal) closeModal(scheduleModal); });
 
     const venueModal = document.getElementById('venue-modal');
     const venueModalClose = venueModal.querySelector('.modal-close');
-    venueModalClose.addEventListener('click', () => { venueModal.style.display = 'none'; });
-    venueModal.addEventListener('click', (e) => { if (e.target === venueModal) venueModal.style.display = 'none'; });
+    venueModalClose.addEventListener('click', () => { closeModal(venueModal); });
+    venueModal.addEventListener('click', (e) => { if (e.target === venueModal) closeModal(venueModal); });
 
     // ヘルプモーダルの設定
     const helpModal = document.getElementById('help-modal');
     const helpBtn = document.getElementById('help-btn');
     const helpModalClose = helpModal.querySelector('.modal-close');
-    
-    helpBtn.addEventListener('click', () => { helpModal.style.display = 'flex'; });
-    helpModalClose.addEventListener('click', () => { helpModal.style.display = 'none'; });
-    helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.style.display = 'none'; });
+
+    helpBtn.addEventListener('click', () => { openModal(helpModal); });
+    helpModalClose.addEventListener('click', () => { closeModal(helpModal); });
+    helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeModal(helpModal); });
+
+    document.addEventListener('keydown', event => {
+        const modal = [scheduleModal, venueModal, helpModal].find(item => item.style.display === 'flex');
+        if (!modal) return;
+        if (event.key === 'Escape') { event.preventDefault(); closeModal(modal); }
+        if (event.key === 'Tab') {
+            const controls = [...modal.querySelectorAll('button, a[href], input, [tabindex="0"]')];
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
 
     // Download/Upload functionality
     const downloadBtn = document.getElementById('download-btn');
@@ -987,46 +1038,47 @@ document.addEventListener('DOMContentLoaded', async function() {
     uploadInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
+        if (file.size > MAX_RESULTS_BYTES) { alert('ファイルは128 KiB以下にしてください。'); uploadInput.value = ''; return; }
 
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const data = JSON.parse(e.target.result);
+                const data = validateResults(JSON.parse(e.target.result));
                 // Basic validation
                 if (typeof data === 'object' && data !== null) {
                     // データが直接のマッチ結果オブジェクトか、confirmed形式かを判定
-                    const rawLoadedResults = data.confirmed || data;
-                    
+                    const rawLoadedResults = data;
+
                     // アップロードされたデータの選手名を正規化
                     const loadedResults = {};
                     Object.keys(rawLoadedResults).forEach(key => {
                         const normalizedKey = normalizeMatchKey(key);
-                        
+
                         // 既存のキーと重複チェック
                         if (loadedResults[normalizedKey] && loadedResults[normalizedKey] !== rawLoadedResults[key]) {
                             console.warn(`アップロード時キーの重複検出: ${normalizedKey}, 既存値: ${loadedResults[normalizedKey]}, 新値: ${rawLoadedResults[key]}`);
                         }
-                        
+
                         loadedResults[normalizedKey] = rawLoadedResults[key];
                         if (key !== normalizedKey) {
                             console.log(`アップロード時キー正規化: ${key} -> ${normalizedKey}`);
                         }
                     });
-                    
+
                     console.log('=== アップロード統計 ===');
                     console.log('元のデータ件数:', Object.keys(rawLoadedResults).length + '件');
                     console.log('正規化後データ件数:', Object.keys(loadedResults).length + '件');
                     console.log('データ削減率:', ((Object.keys(rawLoadedResults).length - Object.keys(loadedResults).length) / Object.keys(rawLoadedResults).length * 100).toFixed(1) + '%');
-                    
+
                     // アップロードされたデータを予想データとして保存
                     predictedResults = { ...loadedResults };
                     // matchResultsは確定データと予想データをマージ（確定データ優先）
                     matchResults = { ...predictedResults, ...confirmedResults };
-                    
+
                     const confirmedCount = Object.keys(confirmedResults).length;
                     const uploadedCount = Object.keys(loadedResults).length;
                     const totalCount = Object.keys(matchResults).length;
-                    
+
                     refreshAllTables();
                     updateChampionDisplay(); // 優勝者表示も更新
                     alert(`結果を正常に読み込みました。\n確定済み: ${confirmedCount}件\nアップロード: ${uploadedCount}件\n合計: ${totalCount}件`);
@@ -1042,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         reader.readAsText(file);
         uploadInput.value = ''; // Reset input
     });
-    
+
     // テーブルを動的生成（status要素を含むDOMを先に生成）
     generateTables();
 
@@ -1205,7 +1257,7 @@ function generateVenueScheduleTable() {
         const venueName = eventSchedule.find(event => event.date === date && event.venue === venue)?.name || venue;
         html += `<tr>
             <td>${date}</td>
-            <td onclick="showVenueSchedule('${venue}', '${date}')" style="cursor: pointer;">${venueName}</td>
+            <td data-venue="${escapeHtml(venue)}" data-date="${escapeHtml(date)}" style="cursor: pointer;">${venueName}</td>
         </tr>`;
     });
 
@@ -1213,5 +1265,8 @@ function generateVenueScheduleTable() {
     const tbody = document.querySelector('.venue-list-section tbody');
     if (tbody) {
         tbody.innerHTML = html;
+        tbody.querySelectorAll?.('[data-venue]').forEach(cell => {
+            cell.addEventListener('click', () => showVenueSchedule(cell.dataset.venue, cell.dataset.date));
+        });
     }
 }

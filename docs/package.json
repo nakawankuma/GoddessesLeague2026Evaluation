@@ -4,6 +4,7 @@
   "description": "Goddes Tag League 2026 Evaluation Tool",
   "main": "index.html",
   "scripts": {
+    "test": "node --test season2026.test.cjs security.test.cjs",
     "start": "node server.js",
     "dev": "node server.js",
     "serve": "http-server . -p 8000 -c-1",

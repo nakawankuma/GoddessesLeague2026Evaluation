@@ -1,66 +1,41 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = __dirname;
+const publicFiles = new Set(['index.html', 'script.js', 'style.css', 'result.json']);
+const mimeTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8' };
 
-// MIMEタイプの設定
-const mimeTypes = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.ico': 'image/x-icon'
-};
-
-const server = http.createServer((req, res) => {
-  // CORSヘッダーの設定
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // URLの解析
-  let filePath = req.url === '/' ? './index.html' : '.' + req.url;
-  
-  // ファイルの拡張子を取得
-  const extname = path.extname(filePath).toLowerCase();
-  const contentType = mimeTypes[extname] || 'application/octet-stream';
-
-  // ファイルの存在確認と送信
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        // ファイルが見つからない場合
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - File Not Found</h1>', 'utf-8');
-      } else {
-        // サーバーエラー
-        res.writeHead(500);
-        res.end(`Server Error: ${error.code}`);
-      }
-    } else {
-      // ファイルを正常に送信
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  });
-});
-
-const PORT = process.env.PORT || 8000;
-
-server.listen(PORT, () => {
-  console.log(`🚀 Goddes Tag League 2026 Evaluation Tool サーバーが起動しました`);
-  console.log(`📍 URL: http://localhost:${PORT}`);
-  console.log(`📁 ファイル: ${path.resolve('./index.html')}`);
-  console.log(`🛑 停止: Ctrl+C`);
-});
-
-// グレースフルシャットダウン
-process.on('SIGINT', () => {
-  console.log('\n🛑 サーバーを停止します...');
-  server.close(() => {
-    console.log('✅ サーバーが正常に停止しました');
-    process.exit(0);
-  });
-});
+function createServer() {
+    return http.createServer((req, res) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+        if (!['GET', 'HEAD'].includes(req.method)) {
+            res.writeHead(405, { Allow: 'GET, HEAD' }); res.end(); return;
+        }
+        let filename;
+        try {
+            const pathname = decodeURIComponent(req.url.split('?')[0]);
+            filename = pathname === '/' ? 'index.html' : pathname.slice(1);
+        } catch {
+            res.writeHead(400); res.end(); return;
+        }
+        // 公開対象だけを許可し、親ディレクトリ・設定・ソース履歴を公開しない。
+        if (!publicFiles.has(filename)) {
+            res.writeHead(404); res.end('Not Found'); return;
+        }
+        fs.readFile(path.join(root, filename), (error, content) => {
+            if (error) { res.writeHead(error.code === 'ENOENT' ? 404 : 500); res.end(); return; }
+            res.writeHead(200, { 'Content-Type': mimeTypes[path.extname(filename)] });
+            res.end(req.method === 'HEAD' ? undefined : content);
+        });
+    });
+}
+if (require.main === module) {
+    const server = createServer();
+    const port = process.env.PORT || 8000;
+    server.listen(port, '127.0.0.1', () => console.log(`http://127.0.0.1:${port}`));
+    process.on('SIGINT', () => server.close());
+}
+module.exports = { createServer };
