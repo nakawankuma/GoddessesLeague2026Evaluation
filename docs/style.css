@@ -128,6 +128,11 @@
             color: white;
         }
 
+        .tab.finals {
+            background: linear-gradient(135deg, #ffd700, #ffb300);
+            color: #333;
+        }
+
         .tab:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);

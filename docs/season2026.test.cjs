@@ -94,7 +94,7 @@ test('タブ表示からBLUE切替・全表示への復帰ができる', () => {
                 toggle(name, force) { if (force) classes.add(name); else classes.delete(name); }
             }};
         };
-        const contents = [makeElement('red-goddesses'), makeElement('blue-goddesses')];
+        const contents = [makeElement('red-goddesses'), makeElement('blue-goddesses'), makeElement('finals')];
         const tabs = contents.map(c => makeElement('', {block: c.id}));
         const buttons = ['all', 'tabs'].map(view => makeElement('', {view}));
         document.querySelectorAll = selector => ({'.content': contents, '.tab': tabs, '.toggle-button': buttons}[selector] || []);
@@ -108,6 +108,11 @@ test('タブ表示からBLUE切替・全表示への復帰ができる', () => {
     assert.equal(run(`contents[0].classList.contains('hidden')`), true);
     assert.equal(run(`contents[1].classList.contains('hidden')`), false);
     assert.equal(run(`tabs[1].classList.contains('active')`), true);
+    run(`showContent('finals')`);
+    assert.equal(run(`contents[0].classList.contains('hidden')`), true);
+    assert.equal(run(`contents[1].classList.contains('hidden')`), true);
+    assert.equal(run(`contents[2].classList.contains('hidden')`), false);
+    assert.equal(run(`tabs[2].classList.contains('active')`), true);
     run(`showAllContent()`);
     assert.equal(elements.get('tabs').style.display, 'none');
     assert.equal(run(`contents.every(c => !c.classList.contains('hidden'))`), true);
