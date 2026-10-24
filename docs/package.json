@@ -1,7 +1,7 @@
 {
-  "name": "goddes-tag-league-2026-evaluation-tool",
+  "name": "goddesses-tag-league-2026-evaluation-tool",
   "version": "1.0.0",
-  "description": "Goddes Tag League 2026 Evaluation Tool",
+  "description": "Goddesses Tag League 2026 Evaluation Tool",
   "main": "index.html",
   "scripts": {
     "test": "node --test season2026.test.cjs security.test.cjs",
@@ -21,7 +21,7 @@
     "tournament",
     "bracket",
     "wrestling",
-    "goddes-tag-league"
+    "goddesses-tag-league"
   ],
   "author": "",
   "license": "MIT"

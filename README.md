@@ -1,7 +1,7 @@
-# Goddes Tag League 2026 Evaluation Tool
+# Goddesses Tag League 2026 Evaluation Tool
 
 ## 概要
-Goddes Tag League 2026の対戦表管理システムです。試合結果の入力・管理、確定データの配布、個人予想のアップロード機能を提供します。
+Goddesses Tag League 2026の対戦表管理システムです。試合結果の入力・管理、確定データの配布、個人予想のアップロード機能を提供します。
 
 ## 2026年データの反映状況
 - 添付画像に基づきRED・BLUE各9チームを反映。
