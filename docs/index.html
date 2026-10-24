@@ -26,11 +26,14 @@
                 <output id="header-font-size-value" for="header-font-size">2.0rem</output>
             </div>
             <div class="io-controls">
+                <button type="button" id="edit-confirmed-btn" class="io-button" aria-pressed="false">確定情報編集</button>
                 <button type="button" id="download-btn" class="io-button">予想結果をダウンロード</button>
                 <button type="button" id="upload-btn" class="io-button">予想結果をアップロード</button>
                 <input type="file" id="upload-input" accept=".json" style="display: none;">
             </div>
         </div>
+
+        <p id="confirmed-edit-status" role="status" style="text-align: center;"></p>
 
         <div class="tabs" id="tabs" style="display: none;">
             <button type="button" class="tab red" data-block="red-goddesses">RED GODDESSES</button>
@@ -104,7 +107,7 @@
 
         <!-- 確定データダウンロードボタン -->
         <div style="text-align: center; margin-top: 30px; padding: 20px;">
-            <button type="button" id="download-confirmed-btn" class="io-button" style="background: #4CAF50; border-color: #45a049; font-size: 1.1em; padding: 12px 24px;">確定データをダウンロード</button>
+            <button type="button" id="download-confirmed-btn" class="io-button" style="background: #4CAF50; border-color: #45a049; font-size: 1.1em; padding: 12px 24px;">確定情報ダウンロード</button>
         </div>
     </div>
 
@@ -134,7 +137,7 @@
                 <ul>
                     <li><strong>試合結果の入力：</strong>各マッチのセルをクリックして勝敗を設定できます（○勝利、×敗北、△引き分け）</li>
                     <li><strong>結果の表示：</strong>各セルは左右に分かれており、左側に確定結果、右側に予想結果が表示されます</li>
-                    <li><strong>確定済み試合：</strong>確定データがある試合はグレー表示となり、予想の変更はできません</li>
+                    <li><strong>確定済み試合：</strong>確定データがある試合はグレー表示となり、予想の変更はできません。「確定情報編集」を押すと確定結果の変更や未確定への取り消しができます。</li>
                     <li><strong>チームスケジュール：</strong>チーム名をクリックすると個別の対戦スケジュールが表示されます</li>
                     <li><strong>会場別試合：</strong>会場名をクリックするとその日の全試合が表示されます</li>
                 </ul>
@@ -151,7 +154,7 @@
                 <ul>
                     <li><strong>予想結果をダウンロード：</strong>現在の予想結果のみをファイルとして保存できます</li>
                     <li><strong>予想結果をアップロード：</strong>保存した予想結果を読み込んで予想を再開できます（確定データとは別に管理されます）</li>
-                    <li><strong>確定データをダウンロード：</strong>現在の全結果を確定データとして保存します（公式結果用）</li>
+                    <li><strong>確定情報ダウンロード：</strong>確定情報だけを既存形式のresult.jsonとして保存します。予想は含みません。サイトへの反映には、そのファイルの置き換えとコミット・公開が必要です。</li>
                     <li><strong>データの表示：</strong>予想データと確定データは自動的に区別され、確定データは左側、予想データは右側に表示されます</li>
                 </ul>
 
@@ -173,6 +176,17 @@
         </div>
     </div>
 
+    <dialog id="confirmed-edit-dialog" aria-labelledby="confirmed-edit-title">
+        <h3 id="confirmed-edit-title">確定情報編集</h3>
+        <p id="confirmed-edit-match"></p>
+        <div class="confirmed-edit-options">
+            <button type="button" data-result="win" id="confirmed-win"></button>
+            <button type="button" data-result="draw">引き分け</button>
+            <button type="button" data-result="lose" id="confirmed-lose"></button>
+            <button type="button" data-result="">未確定に戻す</button>
+            <button type="button" id="confirmed-edit-cancel">キャンセル</button>
+        </div>
+    </dialog>
     <script src="script.js"></script>
 </body>
 </html>

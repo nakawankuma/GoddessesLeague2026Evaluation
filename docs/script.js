@@ -66,6 +66,43 @@ const finalsSchedule = [
 let matchResults = {};
 let confirmedResults = {}; // 確定済み結果
 let predictedResults = {}; // 予想結果（確定データとは別管理）
+let confirmedEditMode = false;
+let confirmedEditsPending = false;
+let editingConfirmedMatch = null;
+
+function openConfirmedEditor(key, player1, player2, reverseKey = null) {
+    editingConfirmedMatch = { key, reverseKey };
+    const dialog = document.getElementById('confirmed-edit-dialog');
+    document.getElementById('confirmed-edit-match').textContent = `${player1} vs ${player2}`;
+    document.getElementById('confirmed-win').textContent = `${player1}の勝ち`;
+    document.getElementById('confirmed-lose').textContent = `${player2}の勝ち`;
+    dialog.querySelector('[data-result="draw"]').hidden = !reverseKey;
+    dialog.showModal();
+}
+
+function setConfirmedResult(key, result, reverseKey = null) {
+    if (result) {
+        validateResults({ [key]: result });
+        confirmedResults[key] = result;
+        if (reverseKey) confirmedResults[reverseKey] = result === 'win' ? 'lose' : result === 'lose' ? 'win' : 'draw';
+    } else {
+        delete confirmedResults[key];
+        if (reverseKey) delete confirmedResults[reverseKey];
+    }
+    matchResults = { ...predictedResults, ...confirmedResults };
+    confirmedEditsPending = true;
+}
+
+function buildConfirmedDownload() {
+    return { confirmed: { ...confirmedResults }, version: '1.0',
+        lastUpdate: new Date().toISOString(), totalMatches: Object.keys(confirmedResults).length };
+}
+
+function updateConfirmedEditStatus() {
+    document.getElementById('confirmed-edit-status').textContent = confirmedEditsPending
+        ? '確定情報を変更しました（未ダウンロード・サイトには未反映）'
+        : confirmedEditMode ? '確定情報編集モード：試合を選んで結果を編集できます。サイトへの反映にはファイルの置き換えと公開が必要です。' : '';
+}
 const blocks = ['red-goddesses', 'blue-goddesses'];
 
 // 選手名の正規化（吏南と更南を同じとして扱う）
@@ -228,6 +265,11 @@ function toggleMatchResult(cell) {
     const block = cell.dataset.block;
     const matchKey = `${block}-${player1}-${player2}`;
     const reverseKey = `${block}-${player2}-${player1}`;
+
+    if (confirmedEditMode) {
+        openConfirmedEditor(matchKey, player1, player2, reverseKey);
+        return;
+    }
 
     console.log('=== toggleMatchResult ===');
     console.log('クリックされたセル:', { player1, player2, block });
@@ -774,6 +816,10 @@ function initializeTournamentBracket() {
 // トーナメント試合結果の管理機能
 function toggleTournamentMatchResult(matchId) {
     const matchKey = `tournament-${matchId}`;
+    if (confirmedEditMode) {
+        openConfirmedEditor(matchKey, getTournamentPlayer1(matchId), getTournamentPlayer2(matchId));
+        return;
+    }
     const resultElement = document.getElementById(`${matchId}-result`);
 
     if (confirmedResults[matchKey]) return;
@@ -941,6 +987,29 @@ function addChampionStyles() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    const editConfirmedButton = document.getElementById('edit-confirmed-btn');
+    editConfirmedButton.addEventListener('click', () => {
+        confirmedEditMode = !confirmedEditMode;
+        editConfirmedButton.setAttribute('aria-pressed', String(confirmedEditMode));
+        editConfirmedButton.textContent = confirmedEditMode ? '確定情報編集を終了' : '確定情報編集';
+        document.body.classList.toggle('confirmed-edit-mode', confirmedEditMode);
+        updateConfirmedEditStatus();
+    });
+    const confirmedDialog = document.getElementById('confirmed-edit-dialog');
+    confirmedDialog.querySelectorAll('[data-result]').forEach(button => {
+        button.addEventListener('click', () => {
+            const {key, reverseKey} = editingConfirmedMatch;
+            setConfirmedResult(key, button.dataset.result || null, reverseKey);
+            refreshAllTables();
+            updateTournamentWinners();
+            updateConfirmedEditStatus();
+            confirmedDialog.close();
+        });
+    });
+    document.getElementById('confirmed-edit-cancel').addEventListener('click', () => confirmedDialog.close());
+    window.addEventListener('beforeunload', event => {
+        if (confirmedEditsPending) { event.preventDefault(); event.returnValue = ''; }
+    });
     const headerFontSize = document.getElementById('header-font-size');
     const headerFontSizeValue = document.getElementById('header-font-size-value');
     headerFontSize.addEventListener('input', () => {
@@ -1029,12 +1098,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 確定データダウンロード機能
     downloadConfirmedBtn.addEventListener('click', () => {
-        const confirmedData = {
-            confirmed: matchResults, // 現在の結果を確定データとして保存
-            version: "1.0",
-            lastUpdate: new Date().toISOString(),
-            totalMatches: Object.keys(matchResults).length
-        };
+        const confirmedData = buildConfirmedDownload();
         const dataStr = JSON.stringify(confirmedData, null, 2);
         const dataBlob = new Blob([dataStr], {type: 'application/json'});
         const url = URL.createObjectURL(dataBlob);
@@ -1045,7 +1109,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        console.log('確定データをダウンロードしました:', Object.keys(matchResults).length + '件');
+        confirmedEditsPending = false;
+        document.getElementById('confirmed-edit-status').textContent = '確定情報をダウンロードしました（サイトには未反映）。result.jsonを置き換えて公開してください。';
     });
 
     uploadBtn.addEventListener('click', () => uploadInput.click());

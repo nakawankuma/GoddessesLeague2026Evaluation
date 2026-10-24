@@ -39,6 +39,34 @@ test('途中の勝敗変更と取り消しで順位・決勝進出表示を更�
     assert.equal(elements.get('red-goddesses-status').textContent, '');
 });
 
+test('確定編集と取消は予想を保持し、既存形式で確定情報のみ出力する', () => {
+    const {run} = setup();
+    run(`
+        const [a, b] = getPlayersInBlock('red-goddesses');
+        const key = 'red-goddesses-' + a + '-' + b;
+        const reverse = 'red-goddesses-' + b + '-' + a;
+        predictedResults[key] = 'lose'; predictedResults[reverse] = 'win';
+        predictedResults['tournament-final'] = 'win';
+        setConfirmedResult(key, 'win', reverse);
+    `);
+    assert.equal(run(`matchResults[key]`), 'win');
+    assert.equal(run(`confirmedResults[reverse]`), 'lose');
+    assert.equal(run(`predictedResults[key]`), 'lose');
+    assert.equal(run(`buildConfirmedDownload().confirmed['tournament-final']`), undefined);
+    assert.equal(run(`buildConfirmedDownload().totalMatches`), 2);
+    assert.equal(run(`Object.keys(validateResults(buildConfirmedDownload())).length`), 2);
+    run(`setConfirmedResult(key, 'draw', reverse)`);
+    assert.equal(run(`confirmedResults[reverse]`), 'draw');
+    run(`setConfirmedResult(key, null, reverse)`);
+    assert.equal(run(`matchResults[key]`), 'lose');
+    assert.equal(run(`buildConfirmedDownload().totalMatches`), 0);
+    run(`setConfirmedResult('tournament-final', 'lose')`);
+    assert.equal(run(`buildConfirmedDownload().confirmed['tournament-final']`), 'lose');
+    assert.throws(() => run(`setConfirmedResult('tournament-final', 'draw')`));
+    run(`setConfirmedResult('tournament-final', null)`);
+    assert.equal(run(`matchResults['tournament-final']`), 'win');
+});
+
 test('各9チーム、36対戦、重複なし、リーグ日程は未定', () => {
     const {run} = setup();
     assert.equal(run(`Object.values(tournamentData).every(b => b.teams.length === 9 && new Set(b.teams).size === 9 && b.matches.length === 36 && new Set(b.matches.map(m => m.slice(0,2).join(':'))).size === 36 && b.matches.every(m => m[2] === '未定' && m[3] === '未定'))`), true);
