@@ -1221,9 +1221,9 @@ function generateBlockTable(blockId, blockData) {
 
         html += `
             <td class="rest-column match-info"></td>
-            <td class="point-column" data-player="${team1}">
+            <th class="point-column" data-player="${team1}">
                 <span class="block-rank">${teams.indexOf(team1) + 1}</span>位(<span class="predicted-points">0</span>)
-            </td>
+            </th>
         </tr>`;
     });
 

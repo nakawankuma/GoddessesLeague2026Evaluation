@@ -314,6 +314,10 @@
             color: #666;
         }
 
+        .schedule-table tbody th.point-column {
+            color: #856404;
+        }
+
         .predicted-points {
             color: #856404;
         }
