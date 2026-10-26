@@ -1,4 +1,4 @@
-// 2026年の対戦枠、未定日程、決勝の勝者反映を検証する。
+// 2026年の対戦枠、確定日程、決勝の勝者反映を検証する。
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -67,9 +67,9 @@ test('確定編集と取消は予想を保持し、既存形式で確定情報�
     assert.equal(run(`matchResults['tournament-final']`), 'win');
 });
 
-test('各9チーム、36対戦、重複なし、リーグ日程は未定', () => {
+test('各9チーム、36対戦、重複なし、全日程を正式会場に対応', () => {
     const {run} = setup();
-    assert.equal(run(`Object.values(tournamentData).every(b => b.teams.length === 9 && new Set(b.teams).size === 9 && b.matches.length === 36 && new Set(b.matches.map(m => m.slice(0,2).join(':'))).size === 36 && b.matches.every(m => m[2] === '未定' && m[3] === '未定'))`), true);
+    assert.equal(run(`Object.values(tournamentData).every(b => b.teams.length === 9 && new Set(b.teams).size === 9 && b.matches.length === 36 && new Set(b.matches.map(m => m.slice(0,2).join(':'))).size === 36 && b.matches.every(m => m[0] < m[1] && eventSchedule.some(e => e.date === m[2] && e.venue === m[3])))`), true);
     assert.deepEqual(JSON.parse(fs.readFileSync(`${__dirname}/result.json`, 'utf8')), {});
 });
 test('各チームの日程に8対戦を一度ずつ表示', () => {
@@ -96,8 +96,8 @@ test('浜松11/29に準決勝2試合と決勝を表示し、勝者を反映・�
     assert.equal(elements.get('champion-text').textContent, '羽南&月山和香優勝！');
 });
 
-// 日付会場一覧には未割当の開催日も表示する。
-test('画像の12日程を日付順に表示し、未登録カードを案内', () => {
+// 日付会場一覧と各会場の対戦カードを検証する。
+test('画像の12日程を日付順に表示し、会場の対戦カードを表示', () => {
     const {run, elements} = setup();
     run(`document.querySelector = () => document.getElementById('venue-list-body'); generateVenueScheduleTable();`);
     const html = elements.get('venue-list-body').innerHTML;
@@ -106,8 +106,12 @@ test('画像の12日程を日付順に表示し、未登録カードを案内', 
     assert.ok(html.includes('静岡・キラメッセぬまづ 多目的ホール1'));
     assert.ok(html.includes('静岡・浜松市総合産業展示館 本館第1展示場'));
     assert.ok(!html.includes('未定'));
-    run(`showVenueSchedule('沼津', '11.3')`);
-    assert.ok(elements.get('modal-venue-body').innerHTML.includes('対戦カードは未登録'));
+    run(`document.querySelectorAll = () => Object.entries(tournamentData).flatMap(([block, data]) => data.matches.map(([i, j, date, venue]) => ({
+        dataset: {block, player1: data.teams[i], player2: data.teams[j]},
+        querySelector: selector => ({textContent: selector === '.venue' ? venue : date})
+    }))); showVenueSchedule('沼津', '11.3')`);
+    assert.equal((elements.get('modal-venue-body').innerHTML.match(/<tr>/g) || []).length, 8);
+    assert.ok(!elements.get('modal-venue-body').innerHTML.includes('対戦カードは未登録'));
 });
 
 // グローバルeventがない環境でも、表示と選択状態を往復できることを検証。
@@ -145,4 +149,30 @@ test('タブ表示からBLUE切替・全表示への復帰ができる', () => {
     assert.equal(elements.get('tabs').style.display, 'none');
     assert.equal(run(`contents.every(c => !c.classList.contains('hidden'))`), true);
     assert.equal(run(`buttons[0].classList.contains('active')`), true);
+});
+
+// 添付表の開催日ごとの試合数と、全18チームの同日重複を確認。
+test('全72試合の開催日別件数とチームの日程重複を検証', () => {
+    const {run} = setup();
+    const counts = run(`JSON.stringify(Object.values(tournamentData).flatMap(b => b.matches).reduce((counts, m) => {
+        counts[m[2]] = (counts[m[2]] || 0) + 1; return counts;
+    }, {}))`);
+    assert.deepEqual(JSON.parse(counts), {
+        '11.1': 7, '11.3': 7, '11.8': 6, '11.11': 7, '11.14': 6,
+        '11.15': 6, '11.18': 7, '11.21': 6, '11.22': 6, '11.23': 7, '11.28': 7
+    });
+    assert.equal(run(`Object.values(tournamentData).every(b => b.teams.every((_, i) => {
+        const dates = b.matches.filter(m => m[0] === i || m[1] === i).map(m => m[2]);
+        return dates.length === 8 && new Set(dates).size === 8;
+    }))`), true);
+    for (const [block, pair, date, venue] of [
+        ['red-goddesses', [0, 4], '11.22', '福島'],
+        ['red-goddesses', [1, 3], '11.23', '郡山'],
+        ['red-goddesses', [7, 8], '11.23', '郡山'],
+        ['blue-goddesses', [0, 4], '11.14', '松山'],
+        ['blue-goddesses', [5, 8], '11.22', '福島'],
+        ['blue-goddesses', [7, 8], '11.11', '後楽園']
+    ]) {
+        assert.equal(run(`tournamentData['${block}'].matches.some(m => m[0] === ${pair[0]} && m[1] === ${pair[1]} && m[2] === '${date}' && m[3] === '${venue}')`), true);
+    }
 });

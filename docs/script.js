@@ -1,4 +1,4 @@
-// 添付された2026年の組分け表を反映。リーグ戦の日付・会場は未確認。
+// 添付された2026年の組分け・対戦日程表を反映。
 const tournamentYear = 2026;
 const tournamentData = {
     "red-goddesses": {
@@ -32,15 +32,7 @@ const tournamentData = {
         "matches": []
     }
 };
-// 総当たりの対戦枠だけを作成し、未確認の日程は補完しない。
-Object.values(tournamentData).forEach(block => {
-    block.teams.forEach((team, i) => {
-        for (let j = i + 1; j < block.teams.length; j++) {
-            block.matches.push([i, j, '未定', '未定']);
-        }
-    });
-});
-// 添付日程画像で確認した開催日と正式会場名。対戦カードとの対応は未確認。
+// 添付日程画像で確認した開催日と正式会場名。
 const eventSchedule = [
     { date: '11.1', venue: '後楽園', name: '東京・後楽園ホール' },
     { date: '11.3', venue: '沼津', name: '静岡・キラメッセぬまづ 多目的ホール1' },
@@ -55,6 +47,38 @@ const eventSchedule = [
     { date: '11.28', venue: '岡崎', name: '愛知・岡崎市体育館' },
     { date: '11.29', venue: '浜松', name: '静岡・浜松市総合産業展示館 本館第1展示場' }
 ];
+// 対戦表の上三角を行順に転記。各行はチームiとi+1以降の対戦日。
+// 画像の群馬・愛媛・福島トヨタ・福島は、日付で既存の正式会場に対応する。
+const leagueMatchDates = {
+    'red-goddesses': [
+        ['11.28', '11.11', '11.18', '11.22', '11.21', '11.14', '11.1', '11.8'],
+        ['11.3', '11.23', '11.14', '11.11', '11.18', '11.15', '11.1'],
+        ['11.22', '11.18', '11.1', '11.23', '11.21', '11.28'],
+        ['11.21', '11.3', '11.8', '11.14', '11.15'],
+        ['11.15', '11.1', '11.8', '11.3'],
+        ['11.28', '11.22', '11.18'],
+        ['11.3', '11.11'],
+        ['11.23']
+    ],
+    'blue-goddesses': [
+        ['11.28', '11.3', '11.11', '11.14', '11.8', '11.1', '11.18', '11.23'],
+        ['11.8', '11.22', '11.3', '11.23', '11.21', '11.14', '11.15'],
+        ['11.23', '11.28', '11.15', '11.11', '11.1', '11.18'],
+        ['11.15', '11.21', '11.18', '11.28', '11.1'],
+        ['11.11', '11.22', '11.8', '11.21'],
+        ['11.14', '11.3', '11.22'],
+        ['11.23', '11.28'],
+        ['11.11']
+    ]
+};
+Object.entries(tournamentData).forEach(([blockId, block]) => {
+    leagueMatchDates[blockId].forEach((dates, i) => {
+        dates.forEach((date, offset) => {
+            const event = eventSchedule.find(slot => slot.date === date);
+            block.matches.push([i, i + offset + 1, date, event.venue]);
+        });
+    });
+});
 // 画像で確認できた準決勝2試合と優勝決定戦。
 const finalsSchedule = [
     { id: 'red-sf', type: '準決勝①', date: '11.29', venue: '浜松' },
