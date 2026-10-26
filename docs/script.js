@@ -1249,7 +1249,7 @@ function generateTables() {
     // チーム名クリックでスケジュール表示
     document.querySelectorAll('.player-name, thead th').forEach(cell => {
         const playerName = cell.textContent.trim();
-        if (playerName && !cell.classList.contains('rest-column') && !cell.classList.contains('point-column')) {
+        if (playerName && !cell.classList.contains('point-column')) {
             cell.style.cursor = 'pointer';
             cell.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1277,7 +1277,6 @@ function generateBlockTable(blockId, blockData) {
     });
 
     html += `
-                    <th class="${colorClass}-header rest-column">休み</th>
                     <th class="${colorClass}-header point-column">順位（勝ち点）</th>
                 </tr>
             </thead>
@@ -1320,7 +1319,6 @@ function generateBlockTable(blockId, blockData) {
         });
 
         html += `
-            <td class="rest-column match-info"></td>
             <th class="point-column" data-player="${team1}">
                 <span class="block-rank">${teams.indexOf(team1) + 1}</span>位(<span class="predicted-points">0</span>)
             </th>
