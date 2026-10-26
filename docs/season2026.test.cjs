@@ -176,3 +176,46 @@ test('全72試合の開催日別件数とチームの日程重複を検証', () 
         assert.equal(run(`tournamentData['${block}'].matches.some(m => m[0] === ${pair[0]} && m[1] === ${pair[1]} && m[2] === '${date}' && m[3] === '${venue}')`), true);
     }
 });
+
+
+test('対戦表の日付・会場は勝敗を切り替えず試合一覧を開く', () => {
+    const {run} = setup();
+    run(`
+        let scheduleClick;
+        let opened;
+        let stopped = false;
+        const button = {
+            dataset: {date: '11.3', venue: '沼津'},
+            addEventListener(type, handler) { scheduleClick = handler; }
+        };
+        document.querySelectorAll = selector => selector === '.match-schedule-link' ? [button] : [];
+        showVenueSchedule = (venue, date) => { opened = [venue, date]; };
+        generateTables();
+        scheduleClick({stopPropagation() { stopped = true; }});
+    `);
+    assert.equal(run('stopped'), true);
+    assert.equal(run('JSON.stringify(opened)'), JSON.stringify(['沼津', '11.3']));
+    assert.equal(run('Object.keys(predictedResults).length'), 0);
+    assert.equal(run(`(generateBlockTable('red-goddesses', tournamentData['red-goddesses']).match(/class="match-schedule-link"/g) || []).length`), 72);
+});
+
+test('日付・会場一覧の両方の列から同じ試合一覧を開く', () => {
+    const {run, elements} = setup();
+    run(`
+        let venueCalls = 0;
+        const cells = [0, 1].map(() => ({
+            dataset: {date: '11.3', venue: '沼津'},
+            addEventListener(type, handler) { this.click = handler; }
+        }));
+        const body = document.getElementById('venue-list-body');
+        body.querySelectorAll = () => cells;
+        document.querySelector = () => body;
+        showVenueSchedule = (venue, date) => {
+            if (venue === '沼津' && date === '11.3') venueCalls++;
+        };
+        generateVenueScheduleTable();
+        cells.forEach(cell => cell.click());
+    `);
+    assert.equal(run('venueCalls'), 2);
+    assert.equal((elements.get('venue-list-body').innerHTML.match(/data-venue=/g) || []).length, 24);
+});

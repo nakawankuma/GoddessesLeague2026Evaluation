@@ -776,10 +776,12 @@ function showVenueSchedule(venueName, date) {
 
             const confirmedIcon = getResultIcon(confirmedResult);
             const predictedIcon = getResultIcon(predictedResult);
+            const blockStyle = match.block === 'red-goddesses' ? 'red' : match.block === 'blue-goddesses' ? 'blue' : 'finals';
+            const blockLabel = tournamentData[match.block]?.title || match.block;
 
             scheduleHtml += `<tr>
                 <td>${match.type}</td>
-                <td>${match.block}</td>
+                <td class="modal-block-cell"><span class="block-badge block-badge-${blockStyle}">${escapeHtml(blockLabel)}</span></td>
                 <td>${match.player1}</td>
                 <td>vs</td>
                 <td>${match.player2}</td>
@@ -1237,6 +1239,13 @@ function generateTables() {
         cell.addEventListener('click', function() { toggleMatchResult(this); });
     });
 
+    document.querySelectorAll('.match-schedule-link').forEach(button => {
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            showVenueSchedule(button.dataset.venue, button.dataset.date);
+        });
+    });
+
     // チーム名クリックでスケジュール表示
     document.querySelectorAll('.player-name, thead th').forEach(cell => {
         const playerName = cell.textContent.trim();
@@ -1295,8 +1304,10 @@ function generateBlockTable(blockId, blockData) {
                     const dataAttrs = `data-player1="${player1}" data-player2="${player2}" data-block="${blockId}" ${reverseAttr}`;
 
                     html += `<td class="match-info clickable-cell" ${dataAttrs}>
-                        <div class="date">${date}</div>
-                        <div class="venue">${venue}</div>
+                        <button type="button" class="match-schedule-link" data-date="${date}" data-venue="${venue}" aria-label="${date} ${venue}の試合一覧">
+                            <span class="date">${date}</span>
+                            <span class="venue">${venue}</span>
+                        </button>
                         <div class="match-results">
                             <div class="confirmed-result"></div>
                             <div class="predicted-result"></div>
@@ -1360,7 +1371,7 @@ function generateVenueScheduleTable() {
         const venue = venueMap.get(date);
         const venueName = eventSchedule.find(event => event.date === date && event.venue === venue)?.name || venue;
         html += `<tr>
-            <td>${date}</td>
+            <td data-venue="${escapeHtml(venue)}" data-date="${escapeHtml(date)}" style="cursor: pointer;">${date}</td>
             <td data-venue="${escapeHtml(venue)}" data-date="${escapeHtml(date)}" style="cursor: pointer;">${venueName}</td>
         </tr>`;
     });

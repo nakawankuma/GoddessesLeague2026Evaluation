@@ -326,6 +326,28 @@
             font-size: 10px;
         }
 
+        .match-schedule-link {
+            position: relative;
+            z-index: 1;
+            padding: 3px 5px;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .match-schedule-link :is(.date, .venue) {
+            display: block;
+        }
+
+        .match-schedule-link:hover,
+        .match-schedule-link:focus-visible {
+            background: #ffffffb3;
+            outline: 2px solid var(--block-accent, #1766b8);
+            outline-offset: 1px;
+        }
+
         .diagonal {
             background: linear-gradient(to bottom left,
                 transparent 0%,
@@ -786,6 +808,99 @@
             }
         }
 
+        /* ブロックごとの大会カラー。結果アイコンの色は共通ルールを使用する。 */
+        #red-goddesses {
+            --block-deep: #370a16;
+            --block-dark: #730d28;
+            --block-accent: #c62049;
+            --block-line: #e3b4bf;
+            --block-soft: #fff5f7;
+            --block-hover: #ffe1e9;
+        }
+
+        #blue-goddesses {
+            --block-deep: #071c3d;
+            --block-dark: #0c3978;
+            --block-accent: #1766b8;
+            --block-line: #b3cce6;
+            --block-soft: #f2f8ff;
+            --block-hover: #dcecff;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) {
+            padding: 24px;
+            border: 1px solid var(--block-accent);
+            border-top: 4px solid #d8b668;
+            border-radius: 14px;
+            background: radial-gradient(ellipse at top right, var(--block-accent), transparent 65%),
+                linear-gradient(135deg, var(--block-dark), var(--block-deep));
+            box-shadow: 0 12px 28px #11182726;
+            box-sizing: border-box;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .block-title {
+            margin: 0 0 20px;
+            padding: 12px 0 20px;
+            border-bottom: 1px solid #ffffff40;
+            color: #fff;
+            font-size: clamp(1.5rem, 3vw, 2.8rem);
+            font-style: italic;
+            letter-spacing: 0.06em;
+            text-align: left;
+            text-shadow: 0 3px 12px #0006;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .block-status {
+            color: #fff0c4;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .block-status.confirmed {
+            color: #b9f6ce;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .schedule-table {
+            margin-bottom: 0;
+            background: var(--block-soft);
+            box-shadow: 0 8px 24px #0003;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .schedule-table :is(th, td) {
+            border-color: var(--block-line);
+        }
+
+        :is(#red-goddesses, #blue-goddesses) :is(thead th, .player-name) {
+            background: linear-gradient(145deg, var(--block-accent), var(--block-dark));
+            color: white;
+            text-shadow: 0 1px 2px #0005;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .clickable-cell:hover {
+            background: var(--block-hover);
+            box-shadow: inset 0 0 0 2px var(--block-accent);
+        }
+
+        :is(#red-goddesses, #blue-goddesses) .diagonal {
+            background: linear-gradient(135deg, transparent 49%, #ffffff30 50%, transparent 51%),
+                var(--block-dark);
+        }
+
+        :is(#red-goddesses, #blue-goddesses) tbody .point-column {
+            background: linear-gradient(135deg, #fff7dc, #ecdaa4);
+            color: #594215;
+            border-color: #c9ae6a;
+            text-shadow: none;
+        }
+
+        :is(#red-goddesses, #blue-goddesses) :is(.block-rank, .predicted-points) {
+            color: #594215;
+        }
+
+        @media (max-width: 768px) {
+            :is(#red-goddesses, #blue-goddesses) {
+                padding: 12px;
+            }
+        }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -810,6 +925,13 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.4);
             max-height: 80vh;
             overflow-y: auto;
+        }
+
+        #schedule-modal .modal-content,
+        #venue-modal .modal-content {
+            width: 80%;
+            max-width: none;
+            box-sizing: border-box;
         }
 
         .modal-close {
@@ -849,6 +971,7 @@
         }
 
         #modal-schedule-body th {
+            text-align: center;
             background-color: #f2f2f2;
             font-weight: bold;
         }
@@ -879,8 +1002,39 @@
         }
 
         #modal-venue-body th {
+            text-align: center;
             background-color: #f2f2f2;
             font-weight: bold;
+        }
+
+        #modal-venue-body .modal-block-cell {
+            text-align: center;
+        }
+
+        .block-badge {
+            display: inline-block;
+            padding: 7px 12px;
+            border: 1px solid #ffffff40;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px #0002;
+        }
+
+        .block-badge-red {
+            background: linear-gradient(135deg, #c62049, #730d28);
+        }
+
+        .block-badge-blue {
+            background: linear-gradient(135deg, #1766b8, #0c3978);
+        }
+
+        .block-badge-finals {
+            background: linear-gradient(135deg, #fff0bb, #d8b668);
+            color: #594215;
         }
 
         #modal-venue-body .result-cell {
