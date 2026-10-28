@@ -166,12 +166,12 @@ test('全72試合の開催日別件数とチームの日程重複を検証', () 
         return dates.length === 8 && new Set(dates).size === 8;
     }))`), true);
     for (const [block, pair, date, venue] of [
-        ['red-goddesses', [0, 4], '11.22', '福島'],
+        ['red-goddesses', [0, 4], '11.23', '郡山'],
         ['red-goddesses', [1, 3], '11.23', '郡山'],
         ['red-goddesses', [7, 8], '11.23', '郡山'],
-        ['blue-goddesses', [0, 4], '11.14', '松山'],
-        ['blue-goddesses', [5, 8], '11.22', '福島'],
-        ['blue-goddesses', [7, 8], '11.11', '後楽園']
+        ['blue-goddesses', [0, 4], '11.28', '岡崎'],
+        ['blue-goddesses', [5, 8], '11.28', '岡崎'],
+        ['blue-goddesses', [7, 8], '11.15', '高知']
     ]) {
         assert.equal(run(`tournamentData['${block}'].matches.some(m => m[0] === ${pair[0]} && m[1] === ${pair[1]} && m[2] === '${date}' && m[3] === '${venue}')`), true);
     }
