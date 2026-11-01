@@ -707,7 +707,34 @@ function getActualTournamentWinner(winnerId) {
     return null;
 }
 
-function showVenueSchedule(venueName, date) {
+function setScheduleResult(match, result, confirmed = false) {
+    const league = match.type === 'リーグ戦';
+    const key = league
+        ? `${match.block}-${normalizePlayerName(match.player1)}-${normalizePlayerName(match.player2)}`
+        : `tournament-${match.match_id}`;
+    const reverseKey = league
+        ? `${match.block}-${normalizePlayerName(match.player2)}-${normalizePlayerName(match.player1)}` : null;
+    if (confirmed !== confirmedEditMode) return;
+    if (result) validateResults({ [key]: result });
+    if (confirmed) {
+        setConfirmedResult(key, result, reverseKey);
+        updateConfirmedEditStatus();
+    } else {
+        if (confirmedResults[key] || (reverseKey && confirmedResults[reverseKey])) return;
+        if (result) {
+            predictedResults[key] = result;
+            if (reverseKey) predictedResults[reverseKey] = result === 'win' ? 'lose' : result === 'lose' ? 'win' : 'draw';
+        } else {
+            delete predictedResults[key];
+            if (reverseKey) delete predictedResults[reverseKey];
+        }
+        matchResults = { ...predictedResults, ...confirmedResults };
+    }
+    refreshAllTables();
+    updateTournamentWinners();
+}
+
+function showVenueSchedule(venueName, date, refreshing = false) {
     const modal = document.getElementById('venue-modal');
     const modalVenueName = document.getElementById('modal-venue-name');
     const modalVenueBody = document.getElementById('modal-venue-body');
@@ -742,7 +769,8 @@ function showVenueSchedule(venueName, date) {
     });
 
     modalVenueName.textContent = `${venueName} (${date}) - 試合一覧`;
-    let scheduleHtml = '<table><thead><tr><th>試合形式</th><th>ブロック</th><th>選手1</th><th>vs</th><th>選手2</th><th>確定勝敗</th><th>予想勝敗</th></tr></thead><tbody>';
+    const editableMatches = [];
+    let scheduleHtml = '<p>勝敗は選手1から見た表示です。' + (confirmedEditMode ? '確定結果を編集できます。' : '予想を入力できます。確定済みの試合は変更できません。') + '</p><table><thead><tr><th>試合形式</th><th>ブロック</th><th>選手1</th><th>vs</th><th>選手2</th><th>確定勝敗</th><th>予想勝敗</th><th>結果入力</th></tr></thead><tbody>';
     if (matches.length > 0) {
         const uniqueMatches = [];
         const seenMatchKeys = new Set();
@@ -767,6 +795,10 @@ function showVenueSchedule(venueName, date) {
                 const matchKey = `${match.block}-${normalizePlayerName(match.player1)}-${normalizePlayerName(match.player2)}`;
                 confirmedResult = confirmedResults[matchKey];
                 predictedResult = predictedResults[matchKey];
+                const reverseKey = `${match.block}-${normalizePlayerName(match.player2)}-${normalizePlayerName(match.player1)}`;
+                const invert = result => result === 'win' ? 'lose' : result === 'lose' ? 'win' : result;
+                confirmedResult ||= invert(confirmedResults[reverseKey]);
+                predictedResult ||= invert(predictedResults[reverseKey]);
             } else {
                 // トーナメントの場合
                 const tournamentKey = `tournament-${match.match_id || ''}`;
@@ -778,23 +810,38 @@ function showVenueSchedule(venueName, date) {
             const predictedIcon = getResultIcon(predictedResult);
             const blockStyle = match.block === 'red-goddesses' ? 'red' : match.block === 'blue-goddesses' ? 'blue' : 'finals';
             const blockLabel = tournamentData[match.block]?.title || match.block;
+            const index = editableMatches.push(match) - 1;
+            const selected = confirmedEditMode ? confirmedResult : predictedResult;
+            const controls = !confirmedEditMode && confirmedResult ? '確定済み' :
+                [['win', '選手1の勝ち'], ...(match.type === 'リーグ戦' ? [['draw', '引分']] : []), ['lose', '選手2の勝ち'], ['', '取消']]
+                    .map(([value, label]) => `<button type="button" data-schedule-match="${index}" data-result="${value}" aria-label="${escapeHtml(`${match.player1} vs ${match.player2}：${label}`)}" aria-pressed="${(selected || '') === value}">${label}</button>`).join('');
 
             scheduleHtml += `<tr>
                 <td>${match.type}</td>
                 <td class="modal-block-cell"><span class="block-badge block-badge-${blockStyle}">${escapeHtml(blockLabel)}</span></td>
-                <td>${match.player1}</td>
+                <td>${escapeHtml(match.player1)}</td>
                 <td>vs</td>
-                <td>${match.player2}</td>
+                <td>${escapeHtml(match.player2)}</td>
                 <td class="result-cell ${escapeHtml(confirmedResult || '')}">${confirmedIcon}</td>
                 <td class="result-cell ${escapeHtml(predictedResult || '')}">${predictedIcon}</td>
+                <td class="schedule-result-controls">${controls}</td>
             </tr>`;
         });
     } else {
-        scheduleHtml += '<tr><td colspan="7">この日の対戦カードは未登録です。</td></tr>';
+        scheduleHtml += '<tr><td colspan="8">この日の対戦カードは未登録です。</td></tr>';
     }
     scheduleHtml += '</tbody></table>';
     modalVenueBody.innerHTML = scheduleHtml;
-    openModal(modal);
+    modalVenueBody.querySelectorAll('[data-schedule-match]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = button.dataset.scheduleMatch;
+            const result = button.dataset.result;
+            setScheduleResult(editableMatches[Number(index)], result || null, confirmedEditMode);
+            showVenueSchedule(venueName, date, true);
+            modalVenueBody.querySelector(`[data-schedule-match="${index}"][data-result="${result}"]`)?.focus();
+        });
+    });
+    if (!refreshing) openModal(modal);
 }
 
 function refreshAllTables() {

@@ -9,7 +9,7 @@ function setup() {
     const context = { console, setTimeout() {}, document: {
         addEventListener() {}, querySelectorAll() { return []; },
         getElementById(id) {
-            if (!elements.has(id)) elements.set(id, {textContent: '', innerHTML: '', style: {}});
+            if (!elements.has(id)) elements.set(id, {textContent: '', innerHTML: '', style: {}, querySelectorAll() { return []; }});
             return elements.get(id);
         }
     }};
@@ -70,7 +70,37 @@ test('確定編集と取消は予想を保持し、既存形式で確定情報�
 test('各9チーム、36対戦、重複なし、全日程を正式会場に対応', () => {
     const {run} = setup();
     assert.equal(run(`Object.values(tournamentData).every(b => b.teams.length === 9 && new Set(b.teams).size === 9 && b.matches.length === 36 && new Set(b.matches.map(m => m.slice(0,2).join(':'))).size === 36 && b.matches.every(m => m[0] < m[1] && eventSchedule.some(e => e.date === m[2] && e.venue === m[3])))`), true);
-    assert.deepEqual(JSON.parse(fs.readFileSync(`${__dirname}/result.json`, 'utf8')), {});
+    const published = JSON.parse(fs.readFileSync(`${__dirname}/result.json`, 'utf8'));
+    assert.doesNotThrow(() => run(`validateResults(${JSON.stringify(published)})`));
+});
+
+test('日付ダイアログの入力は両方向の予想・確定保護・取消と既存JSON形式を保持する', () => {
+    const {run} = setup();
+    run(`
+        refreshAllTables = () => {}; updateTournamentWinners = () => {};
+        updateConfirmedEditStatus = () => {};
+        const [a, b] = getPlayersInBlock('red-goddesses');
+        const match = {type: 'リーグ戦', block: 'red-goddesses', player1: a, player2: b};
+        const key = 'red-goddesses-' + a + '-' + b;
+        const reverse = 'red-goddesses-' + b + '-' + a;
+        setScheduleResult(match, 'win');
+    `);
+    assert.equal(run('predictedResults[key]'), 'win');
+    assert.equal(run('predictedResults[reverse]'), 'lose');
+    run(`setScheduleResult(match, 'draw')`);
+    assert.equal(run('matchResults[reverse]'), 'draw');
+    assert.equal(run('JSON.stringify(validateResults(predictedResults)) === JSON.stringify(validateResults({confirmed: predictedResults}))'), true);
+    run(`confirmedEditMode = true; setScheduleResult(match, 'lose', true); confirmedEditMode = false; setScheduleResult(match, 'win')`);
+    assert.equal(run('matchResults[key]'), 'lose');
+    assert.equal(run('predictedResults[key]'), 'draw');
+    run(`confirmedEditMode = true; setScheduleResult(match, null, true); confirmedEditMode = false;`);
+    assert.equal(run('matchResults[key]'), 'draw');
+    run(`setScheduleResult(match, null)`);
+    assert.equal(run('matchResults[key]'), undefined);
+    assert.equal(run('predictedResults[reverse]'), undefined);
+    run(`setScheduleResult({type: '決勝', match_id: 'final'}, 'lose')`);
+    assert.equal(run(`predictedResults['tournament-final']`), 'lose');
+    assert.throws(() => run(`setScheduleResult({type: '決勝', match_id: 'final'}, 'draw')`));
 });
 test('各チームの日程に8対戦を一度ずつ表示', () => {
     const {run, elements} = setup();

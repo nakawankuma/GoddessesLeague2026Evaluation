@@ -985,6 +985,27 @@
             color: #dc3545;
         }
 
+        #modal-venue-body .schedule-result-controls {
+            min-width: 180px;
+        }
+        .schedule-result-controls button {
+            padding: 8px 10px;
+            margin: 3px;
+            cursor: pointer;
+            border: 1px solid #777;
+            border-radius: 5px;
+            background: #fff;
+            color: #222;
+        }
+        .schedule-result-controls button[aria-pressed="true"] {
+            background: #dceeff;
+            border-color: #1769aa;
+            font-weight: bold;
+        }
+        .schedule-result-controls button:focus-visible {
+            outline: 3px solid #1769aa;
+            outline-offset: 2px;
+        }
         #modal-venue-body table {
             width: 100%;
             border-collapse: collapse;
