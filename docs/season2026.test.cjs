@@ -229,6 +229,28 @@ test('対戦表の日付・会場は勝敗を切り替えず試合一覧を開�
     assert.equal(run(`(generateBlockTable('red-goddesses', tournamentData['red-goddesses']).match(/class="match-schedule-link"/g) || []).length`), 72);
 });
 
+test('チーム名THだけに日程表示を付け、会場THには付けない', () => {
+    const {run} = setup();
+    run(`
+        const teamName = tournamentData['red-goddesses'].teams[0];
+        const teamHeader = {textContent: teamName, style: {}, classList: {contains() { return false; }},
+            addEventListener(type, handler) { this.click = handler; }};
+        const venueHeader = {...teamHeader, textContent: '会場', style: {}};
+        let openedTeam;
+        document.querySelectorAll = selector => {
+            if (selector === '.player-name, th[data-team-name]') return [teamHeader];
+            if (selector.includes('thead th')) return [teamHeader, venueHeader];
+            return [];
+        };
+        showPlayerSchedule = name => { openedTeam = name; };
+        generateTables();
+        teamHeader.click({stopPropagation() {}});
+    `);
+    assert.equal(run('openedTeam === teamName'), true);
+    assert.equal(run('venueHeader.click'), undefined);
+    assert.equal(run(`(generateBlockTable('red-goddesses', tournamentData['red-goddesses']).match(/data-team-name/g) || []).length`), 9);
+});
+
 test('日付・会場一覧の両方の列から同じ試合一覧を開く', () => {
     const {run, elements} = setup();
     run(`

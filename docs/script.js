@@ -1294,7 +1294,7 @@ function generateTables() {
     });
 
     // チーム名クリックでスケジュール表示
-    document.querySelectorAll('.player-name, thead th').forEach(cell => {
+    document.querySelectorAll('.player-name, th[data-team-name]').forEach(cell => {
         const playerName = cell.textContent.trim();
         if (playerName && !cell.classList.contains('point-column')) {
             cell.style.cursor = 'pointer';
@@ -1320,7 +1320,7 @@ function generateBlockTable(blockId, blockData) {
                     <th class="${colorClass}-header"></th>`;
 
     teams.forEach(team => {
-        html += `<th class="${colorClass}-header">${team}</th>`;
+        html += `<th class="${colorClass}-header" data-team-name>${team}</th>`;
     });
 
     html += `
