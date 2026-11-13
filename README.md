@@ -39,23 +39,19 @@ Goddesses Tag League 2026の対戦表管理システムです。試合結果の�
 
 ### セットアップ手順
 
-1. **依存関係のインストール**
-```bash
-npm install
-```
+リポジトリ直下の PowerShell で起動できます。サーバーの起動に `npm install` は不要です。
 
-2. **開発サーバーの起動**
-```bash
-# 方法1: 自作サーバー（推奨）
+```powershell
 npm start
 # または
 npm run dev
-
-# 方法2: http-server使用
+# 同じサーバーを起動する別名
 npm run serve
 ```
 
-3. **ブラウザでアクセス**
+テストは `npm test` で実行できます。HTML 検証に必要な依存パッケージは `npm --prefix docs install` でインストールしてください。
+
+ブラウザで以下にアクセスします。
 ```
 http://localhost:8000
 ```

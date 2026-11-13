@@ -1,0 +1,11 @@
+{
+  "name": "goddesses-tag-league-2026-evaluation-tool-root",
+  "private": true,
+  "scripts": {
+    "start": "node docs/server.js",
+    "dev": "node docs/server.js",
+    "serve": "node docs/server.js",
+    "test": "npm --prefix docs test",
+    "lint": "npm --prefix docs run lint"
+  }
+}

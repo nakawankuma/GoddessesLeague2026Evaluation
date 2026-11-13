@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const http = require('node:http');
+const path = require('node:path');
 const { createServer } = require('./server');
 
 function setup() {
@@ -31,6 +32,30 @@ test('JSON rejects HTML payloads, unknown keys, arrays and invalid tournament dr
     assert.equal(run(`validateResults({confirmed: {'tournament-final': 'win'}})['tournament-final']`), 'win');
     assert.equal(run(`Object.keys(validateResults({})).length`), 0);
     assert.equal(run(`const key = 'red-goddesses-' + tournamentData['red-goddesses'].teams[0] + '-' + tournamentData['red-goddesses'].teams[1]; validateResults({[key]: 'draw'})[key]`), 'draw');
+});
+
+test('league results complete a single direction and reject conflicting directions', () => {
+    const { run } = setup();
+    assert.equal(run(`
+        const [a, b] = tournamentData['red-goddesses'].teams;
+        const forward = 'red-goddesses-' + a + '-' + b;
+        const reverse = 'red-goddesses-' + b + '-' + a;
+        const result = validateResults({[reverse]: 'win'});
+        result[forward] === 'lose' && result[reverse] === 'win';
+    `), true);
+    assert.equal(run(`validateResults({[forward]: 'draw'})[reverse]`), 'draw');
+    assert.throws(() => run(`validateResults({[forward]: 'win', [reverse]: 'win'})`));
+});
+
+test('serve uses the restricted HTTP server', () => {
+    const { scripts } = require('./package.json');
+    assert.equal(scripts.serve, scripts.start);
+});
+
+test('repository root exposes the same restricted server commands', () => {
+    const { scripts } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    assert.equal(scripts.start, 'node docs/server.js');
+    assert.equal(scripts.serve, scripts.start);
 });
 
 test('modal escapes malicious result values even if validation is bypassed', () => {

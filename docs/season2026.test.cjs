@@ -271,3 +271,23 @@ test('日付・会場一覧の両方の列から同じ試合一覧を開く', ()
     assert.equal(run('venueCalls'), 2);
     assert.equal((elements.get('venue-list-body').innerHTML.match(/data-venue=/g) || []).length, 24);
 });
+
+test('準決勝の勝者が決まるまで優勝者を表示しない', () => {
+    const {run, elements} = setup();
+    run(`
+        matchResults['tournament-final'] = 'win';
+        updateChampionDisplay();
+    `);
+    assert.equal(elements.get('champion-display').style.display, 'none');
+    run(`matchResults['tournament-red-sf'] = 'win'; updateChampionDisplay();`);
+    assert.equal(elements.get('champion-display').style.display, 'none');
+    run(`matchResults['tournament-blue-sf'] = 'win'; updateChampionDisplay();`);
+    assert.equal(elements.get('champion-display').style.display, 'none');
+    run(`
+        document.getElementById('bracket-red-1-rank').textContent = '1位 ' + tournamentData['red-goddesses'].teams[0];
+        document.getElementById('bracket-blue-1-rank').textContent = '1位 ' + tournamentData['blue-goddesses'].teams[0];
+        updateChampionDisplay();
+    `);
+    assert.equal(elements.get('champion-display').style.display, 'block');
+    assert.equal(elements.get('champion-text').textContent, '羽南&月山和香優勝！');
+});

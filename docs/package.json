@@ -7,14 +7,13 @@
     "test": "node --test season2026.test.cjs security.test.cjs",
     "start": "node server.js",
     "dev": "node server.js",
-    "serve": "http-server . -p 8000 -c-1",
+    "serve": "node server.js",
     "lint": "html-validate index.html",
     "lint:fix": "html-validate index.html --fix",
     "prepare": "husky"
   },
   "devDependencies": {
     "html-validate": "^10.2.1",
-    "http-server": "^14.1.1",
     "husky": "^9.1.7"
   },
   "keywords": [

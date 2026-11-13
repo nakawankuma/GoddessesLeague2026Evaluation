@@ -158,6 +158,21 @@ function validateResults(data) {
             (normalized.startsWith('tournament-') && value === 'draw')) throw new Error('未対応の試合または勝敗です');
         if (value) result[normalized] = value;
     }
+    // リーグ戦は両チーム視点の結果を揃え、矛盾する入力を受け付けない。
+    const opposite = { win: 'lose', lose: 'win', draw: 'draw' };
+    blocks.forEach(block => tournamentData[block].matches.forEach(([i, j]) => {
+        const teams = tournamentData[block].teams;
+        const forward = `${block}-${teams[i]}-${teams[j]}`;
+        const reverse = `${block}-${teams[j]}-${teams[i]}`;
+        const forwardResult = result[forward];
+        const reverseResult = result[reverse];
+        if (!forwardResult && !reverseResult) return;
+        if (forwardResult && reverseResult && opposite[forwardResult] !== reverseResult) {
+            throw new Error('対戦結果の両方向が矛盾しています');
+        }
+        if (!forwardResult) result[forward] = opposite[reverseResult];
+        if (!reverseResult) result[reverse] = opposite[forwardResult];
+    }));
     return result;
 }
 function escapeHtml(value) {
@@ -997,6 +1012,14 @@ function updateChampionDisplay() {
     const finalResult = matchResults['tournament-final'];
     const championDisplay = document.getElementById('champion-display');
     const championText = document.getElementById('champion-text');
+    const redFinalist = getMatchWinner('red-sf');
+    const blueFinalist = getMatchWinner('blue-sf');
+
+    if (!tournamentData['red-goddesses'].teams.includes(redFinalist) ||
+        !tournamentData['blue-goddesses'].teams.includes(blueFinalist)) {
+        championDisplay.style.display = 'none';
+        return;
+    }
 
     if (finalResult) {
         // 決勝の勝者を取得
