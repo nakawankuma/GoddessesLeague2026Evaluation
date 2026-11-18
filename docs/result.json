@@ -77,9 +77,23 @@
     "blue-goddesses-刀羅ナツコ&琉悪夏-小波&吏南": "lose",
     "blue-goddesses-小波&吏南-刀羅ナツコ&琉悪夏": "win",
     "blue-goddesses-鈴季すず&山下りな-八神蘭奈&鉄アキラ": "draw",
-    "blue-goddesses-八神蘭奈&鉄アキラ-鈴季すず&山下りな": "draw"
+    "blue-goddesses-八神蘭奈&鉄アキラ-鈴季すず&山下りな": "draw",
+    "red-goddesses-星来芽依&儛島エマ-古沢稀杏&虎龍清花": "win",
+    "red-goddesses-古沢稀杏&虎龍清花-星来芽依&儛島エマ": "lose",
+    "blue-goddesses-葉月&コグマ-ダーク・シルエタ&バルキリア": "lose",
+    "blue-goddesses-ダーク・シルエタ&バルキリア-葉月&コグマ": "win",
+    "red-goddesses-羽南&月山和香-水森由菜&金屋あんね": "win",
+    "red-goddesses-水森由菜&金屋あんね-羽南&月山和香": "lose",
+    "red-goddesses-安納サオリ&フワちゃん-渡辺桃&上谷沙弥": "win",
+    "red-goddesses-渡辺桃&上谷沙弥-安納サオリ&フワちゃん": "lose",
+    "red-goddesses-舞華&HANAKO-スターライト・キッド&伊藤麻希": "draw",
+    "red-goddesses-スターライト・キッド&伊藤麻希-舞華&HANAKO": "draw",
+    "blue-goddesses-鈴季すず&山下りな-小波&吏南": "win",
+    "blue-goddesses-小波&吏南-鈴季すず&山下りな": "lose",
+    "blue-goddesses-飯田沙耶&林下詩美-刀羅ナツコ&琉悪夏": "lose",
+    "blue-goddesses-刀羅ナツコ&琉悪夏-飯田沙耶&林下詩美": "win"
   },
   "version": "1.0",
-  "lastUpdate": "2026-11-15T12:40:17.240Z",
-  "totalMatches": 78
+  "lastUpdate": "2026-11-18T13:19:14.701Z",
+  "totalMatches": 92
 }
