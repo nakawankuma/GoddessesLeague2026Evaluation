@@ -388,6 +388,88 @@
             color: #28a745;
         }
 
+        .qualification-analysis {
+            margin: 14px 0 22px;
+            padding: 14px;
+            border: 1px solid #d7dce2;
+            border-radius: 8px;
+            background: #fff;
+            color: #333;
+            font-size: 0.92rem;
+        }
+
+        .qualification-analysis h3 {
+            margin: 0 0 8px;
+            font-size: 1.08rem;
+        }
+
+        .qualification-run-button {
+            margin: 0 0 8px;
+            padding: 8px 14px;
+            border: 0;
+            border-radius: 5px;
+            background: #285f8f;
+            color: #fff;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .qualification-run-button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .qualification-analysis p {
+            margin: 6px 0 10px;
+            line-height: 1.5;
+        }
+
+        .qualification-playoff {
+            color: #8a4b08;
+            font-weight: 700;
+        }
+
+        .qualification-table-wrap {
+            overflow-x: auto;
+        }
+
+        .qualification-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .qualification-table th,
+        .qualification-table td {
+            padding: 7px 9px;
+            border: 1px solid #e1e5e9;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .qualification-table thead th {
+            background: #f1f4f7;
+        }
+
+        .qualification-table tbody th {
+            font-weight: 600;
+        }
+
+        .qualification-status {
+            font-weight: 700;
+        }
+
+        .qualification-status.confirmed {
+            color: #18733b;
+        }
+
+        .qualification-status.eliminated {
+            color: #bf2835;
+        }
+
+        .qualification-status.possible {
+            color: #8a5a00;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;

@@ -128,6 +128,11 @@ function updateConfirmedEditStatus() {
         : confirmedEditMode ? '確定情報編集モード：試合を選んで結果を編集できます。サイトへの反映にはファイルの置き換えと公開が必要です。' : '';
 }
 const blocks = ['red-goddesses', 'blue-goddesses'];
+const qualificationAnalysisVersions = { 'red-goddesses': 0, 'blue-goddesses': 0 };
+const qualificationAnalysisStates = {
+    'red-goddesses': { running: false, hasResult: false },
+    'blue-goddesses': { running: false, hasResult: false }
+};
 
 // 選手名の正規化（吏南と更南を同じとして扱う）
 function normalizePlayerName(name) {
@@ -578,22 +583,201 @@ function determineBlockRankings(block) {
         stat.points = points;
     });
 
-    playerStats.sort((a, b) => {
-        if (b.points !== a.points) {
-            return b.points - a.points;
+    const headToHead = playerStats.map(stat => playerStats.map(opponent => stat.opponents[opponent.name] || null));
+    const ranking = rankScenario(playerStats.map(stat => stat.points), headToHead);
+    return ranking.ordered.map((playerIndex, rank) => ({
+        ...playerStats[playerIndex], rank: rank + 1,
+        playoff: ranking.playoffs.some(group => group.players.includes(playerIndex))
+    }));
+}
+
+function getBlockMatchResult(block, player1, player2) {
+    const forward = matchResults[`${block}-${player1}-${player2}`];
+    if (forward) return forward;
+    const reverse = matchResults[`${block}-${player2}-${player1}`];
+    if (reverse === 'win') return 'lose';
+    if (reverse === 'lose') return 'win';
+    return reverse || null;
+}
+
+function rankScenario(points, headToHead) {
+    const groups = new Map();
+    points.forEach((score, index) => {
+        if (!groups.has(score)) groups.set(score, []);
+        groups.get(score).push(index);
+    });
+    const orderedGroups = [...groups.entries()].sort((a, b) => b[0] - a[0]).map(([, players]) => players);
+    const ordered = [];
+    const playoffs = [];
+    orderedGroups.forEach(group => {
+        if (group.length > 1) {
+            const miniPoints = new Map(group.map(index => [index, 0]));
+            group.forEach(a => group.forEach(b => {
+                if (a === b) return;
+                const result = headToHead[a][b];
+                if (result === 'win') miniPoints.set(a, miniPoints.get(a) + 2);
+                if (result === 'draw') miniPoints.set(a, miniPoints.get(a) + 1);
+            }));
+            group.sort((a, b) => miniPoints.get(b) - miniPoints.get(a) || a - b);
+            if (group.length === 3 && group.every(index => miniPoints.get(index) === miniPoints.get(group[0]))) {
+                const decisiveCycle = group.every(a => group.filter(b => b !== a).filter(b => headToHead[a][b] === 'win').length === 1);
+                if (decisiveCycle) playoffs.push({ players: [...group], startRank: ordered.length + 1 });
+            }
         }
-        const directResult = a.opponents[b.name];
-        if (directResult === 'win') return -1;
-        if (directResult === 'lose') return 1;
-        return 0;
+        ordered.push(...group);
     });
+    return { ordered, playoffs };
+}
 
-    // 順位を付与
-    playerStats.forEach((stat, index) => {
-        stat.rank = index + 1;
+// 残り試合の全結果を走査し、進出可能性と「残り全勝」の場合を判定する。
+async function analyzeQualification(block, version) {
+    const teams = tournamentData[block].teams;
+    const matches = tournamentData[block].matches.map(([i, j]) => ({
+        i, j, result: getBlockMatchResult(block, teams[i], teams[j])
+    }));
+    const points = Array(teams.length).fill(0);
+    const headToHead = Array.from({ length: teams.length }, () => Array(teams.length).fill(null));
+    const rows = teams.map((name, index) => ({ name, index, canAdvance: false, canMiss: false,
+        allWinsCanAdvance: false, allWinsCanMiss: false, allWinsPlayoff: false }));
+    const unresolvedByTeam = rows.map((row, index) => matches.filter(match => !match.result && (match.i === index || match.j === index)));
+    let possibleThreeWayPlayoff = false;
+    let scenariosVisited = 0;
+
+    matches.forEach(match => {
+        if (!match.result) return;
+        const p1 = match.result === 'win' ? 2 : match.result === 'draw' ? 1 : 0;
+        const p2 = match.result === 'lose' ? 2 : match.result === 'draw' ? 1 : 0;
+        points[match.i] += p1;
+        points[match.j] += p2;
+        headToHead[match.i][match.j] = match.result;
+        headToHead[match.j][match.i] = match.result === 'win' ? 'lose' : match.result === 'lose' ? 'win' : 'draw';
     });
+    const currentRanking = rankScenario([...points], headToHead);
+    const currentPlayoff = currentRanking.playoffs.length > 0;
+    points.fill(0);
+    headToHead.forEach(row => row.fill(null));
 
-    return playerStats;
+    function applyResult(match, result, add) {
+        const { i, j } = match;
+        const p1 = result === 'win' ? 2 : result === 'draw' ? 1 : 0;
+        const p2 = result === 'lose' ? 2 : result === 'draw' ? 1 : 0;
+        points[i] += add * p1;
+        points[j] += add * p2;
+        headToHead[i][j] = result;
+        headToHead[j][i] = result === 'win' ? 'lose' : result === 'lose' ? 'win' : 'draw';
+    }
+
+    async function visit(matchIndex) {
+        if (qualificationAnalysisVersions[block] !== version) return;
+        if (matchIndex < matches.length) {
+            const match = matches[matchIndex];
+            const outcomes = match.result ? [match.result] : ['win', 'lose', 'draw'];
+            for (const result of outcomes) {
+                if (qualificationAnalysisVersions[block] !== version) break;
+                applyResult(match, result, 1);
+                await visit(matchIndex + 1);
+                applyResult(match, result, -1);
+                headToHead[match.i][match.j] = null;
+                headToHead[match.j][match.i] = null;
+            }
+            return;
+        }
+
+        const ranking = rankScenario(points, headToHead);
+        const rankByIndex = Array(teams.length);
+        ranking.ordered.forEach((teamIndex, rank) => { rankByIndex[teamIndex] = rank + 1; });
+        if (ranking.playoffs.length) possibleThreeWayPlayoff = true;
+        rows.forEach(row => {
+            const playoff = ranking.playoffs.find(item => item.players.includes(row.index));
+            const playoffTouchesAdvance = playoff && playoff.startRank <= 2;
+            const canAdvance = rankByIndex[row.index] <= 2 || Boolean(playoffTouchesAdvance);
+            const canMiss = rankByIndex[row.index] > 2 || Boolean(playoffTouchesAdvance);
+            row.canAdvance ||= canAdvance;
+            row.canMiss ||= canMiss;
+
+            const allRemainingWon = unresolvedByTeam[row.index].every(match =>
+                match.i === row.index ? headToHead[match.i][match.j] === 'win' : headToHead[match.j][match.i] === 'win');
+            if (allRemainingWon) {
+                row.allWinsCanAdvance ||= canAdvance;
+                row.allWinsCanMiss ||= canMiss;
+                row.allWinsPlayoff ||= Boolean(playoff);
+            }
+        });
+        scenariosVisited++;
+        if (scenariosVisited % 2048 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    }
+    await visit(0);
+    if (qualificationAnalysisVersions[block] !== version) return null;
+    return { rows, possibleThreeWayPlayoff, currentPlayoff, unresolved: matches.filter(match => !match.result).length };
+}
+
+function renderQualificationAnalysis(block, analysis) {
+    const container = document.getElementById(`${block}-qualification`);
+    const resultContainer = container?.querySelector('.qualification-result');
+    if (!resultContainer || !analysis) return;
+    const playoffNotes = [
+        analysis.currentPlayoff ? '<p class="qualification-playoff">現在入力されている結果では、3組の三すくみが成立しています。該当3組による勝ち抜き戦が発生します。</p>' : '',
+        analysis.possibleThreeWayPlayoff && !analysis.currentPlayoff ? '<p class="qualification-playoff">未確定試合の結果次第で3組の三すくみが成立し、該当3組による勝ち抜き戦が発生する可能性があります。</p>' : ''
+    ].join('');
+    const rows = analysis.rows.map(row => {
+        const overall = row.canAdvance && row.canMiss
+            ? '<span class="qualification-status possible"><span aria-hidden="true">△</span> 進出可能性あり</span>'
+            : row.canAdvance
+                ? '<span class="qualification-status confirmed"><span aria-hidden="true">○</span> 進出確定</span>'
+                : '<span class="qualification-status eliminated"><span aria-hidden="true">×</span> 進出不可</span>';
+        let allWins;
+        if (!row.allWinsCanAdvance) allWins = '<span class="qualification-status eliminated"><span aria-hidden="true">×</span> 進出不可</span>';
+        else if (row.allWinsPlayoff && row.allWinsCanMiss) allWins = '<span class="qualification-status possible">勝ち抜き戦次第</span>';
+        else if (row.allWinsCanMiss) allWins = '<span class="qualification-status possible"><span aria-hidden="true">△</span> 進出可能性あり</span>';
+        else allWins = '<span class="qualification-status confirmed"><span aria-hidden="true">○</span> 進出確定</span>';
+        return `<tr><th scope="row">${escapeHtml(row.name)}</th><td>${overall}</td><td>${allWins}</td></tr>`;
+    }).join('');
+    resultContainer.innerHTML = `<p>未確定 ${analysis.unresolved} 試合の結果をすべて組み合わせ、各組の上位2組を進出対象として判定しています。残り全勝時は、その組の未確定試合に全勝した場合です。</p>
+        ${playoffNotes}<div class="qualification-table-wrap"><table class="qualification-table"><thead><tr><th>選手</th><th>進出可能性</th><th>残り全勝時</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function startQualificationAnalysis(block, button) {
+    const container = document.getElementById(`${block}-qualification`);
+    if (!container) return;
+    const resultContainer = container.querySelector('.qualification-result');
+    const state = qualificationAnalysisStates[block];
+    if (!resultContainer || state.running) return;
+    const version = ++qualificationAnalysisVersions[block];
+    state.running = true;
+    state.hasResult = false;
+    button.disabled = true;
+    button.textContent = '判定中…';
+    container.setAttribute('aria-busy', 'true');
+    resultContainer.innerHTML = '<p>進出可能性を計算しています。試合結果が変わると計算を中止します。</p>';
+    setTimeout(async () => {
+        const analysis = await analyzeQualification(block, version);
+        if (qualificationAnalysisVersions[block] !== version || !analysis) return;
+        renderQualificationAnalysis(block, analysis);
+        state.running = false;
+        state.hasResult = true;
+        button.disabled = false;
+        button.textContent = '再判定する';
+        container.setAttribute('aria-busy', 'false');
+    }, 0);
+}
+
+function invalidateQualificationAnalysis(block) {
+    const state = qualificationAnalysisStates[block];
+    if (!state.running && !state.hasResult) return;
+    qualificationAnalysisVersions[block]++;
+    state.running = false;
+    state.hasResult = false;
+    const container = document.getElementById(`${block}-qualification`);
+    const button = container?.querySelector('.qualification-run-button');
+    const resultContainer = container?.querySelector('.qualification-result');
+    if (button) {
+        button.disabled = false;
+        button.textContent = '進出可能性を判定';
+    }
+    if (resultContainer) resultContainer.innerHTML = '<p>試合結果が更新されました。最新の結果で判定するにはボタンを押してください。</p>';
+    container?.setAttribute('aria-busy', 'false');
 }
 
 /**
@@ -612,7 +796,7 @@ function updateTournamentBracket(block, rankings) {
         const rankElement = document.getElementById(`bracket-${blockShort}-${rank}-rank`);
 
         if (rankElement) {
-            rankElement.textContent = `${rank}位 ${player.name}`;
+            rankElement.textContent = player.playoff ? '3組による勝ち抜き戦' : `${rank}位 ${player.name}`;
         } else {
             console.warn(`トーナメント要素が見つかりません: bracket-${blockShort}-${rank}-rank`);
         }
@@ -654,6 +838,7 @@ function checkCompletionAndRank(block) {
         statusEl.classList.remove('confirmed');
     }
     updateTournamentWinners();
+    invalidateQualificationAnalysis(block);
 }
 
 function showPlayerSchedule(playerName) {
@@ -1316,6 +1501,10 @@ function generateTables() {
         });
     });
 
+    document.querySelectorAll('.qualification-run-button').forEach(button => {
+        button.addEventListener('click', () => startQualificationAnalysis(button.dataset.block, button));
+    });
+
     // チーム名クリックでスケジュール表示
     document.querySelectorAll('.player-name, th[data-team-name]').forEach(cell => {
         const playerName = cell.textContent.trim();
@@ -1397,7 +1586,12 @@ function generateBlockTable(blockId, blockData) {
 
     html += `
             </tbody>
-        </table>`;
+        </table>
+        <section id="${blockId}-qualification" class="qualification-analysis" aria-live="polite">
+            <h3>決勝トーナメント進出の可能性</h3>
+            <button type="button" class="qualification-run-button" data-block="${blockId}">進出可能性を判定</button>
+            <div class="qualification-result"><p>ボタンを押すと、未確定試合を含めて判定します。</p></div>
+        </section>`;
 
     return html;
 }
